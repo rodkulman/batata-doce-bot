@@ -47,7 +47,7 @@ namespace Rodkulman.Telegram
                 return;
             }
 
-            switch (message.Text.Split(' ').First())
+            switch (message.Text.Split(' ').First().ToLower())
             {
                 case "/whatis":
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
@@ -63,6 +63,15 @@ namespace Rodkulman.Telegram
                     break;
                 case "/communism":
                     await SendCommunistPropaganda(message);
+                    break;
+                case "/jesus":
+                    await SendJesusMessage(message);
+                    break;
+                case "/ghandi":
+                    await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyMarkup: new ReplyKeyboardRemove());
+                    break;
+                case "/gandhi":
+                    await SendGandhiMessage(message);
                     break;
                 default:
                     await Bot.SendTextMessageAsync(message.Chat.Id, "O que tu tentou fazer não é dank o suficiente", replyMarkup: new ReplyKeyboardRemove());
@@ -84,6 +93,34 @@ namespace Rodkulman.Telegram
             else if (Regex.IsMatch(message.Text, @"\btop\b", RegexOptions.IgnoreCase))
             {
                 await SendTopMessage(message);
+            }
+            else if (Regex.IsMatch(message.Text, @"\bghandi\b", RegexOptions.IgnoreCase))
+            {
+                await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyMarkup: new ReplyKeyboardRemove());
+            }
+            else if (Regex.IsMatch(message.Text, @"\bjesus\b", RegexOptions.IgnoreCase))
+            {
+                await SendJesusMessage(message);
+            }
+        }
+
+        private static async Task SendJesusMessage(Message message)
+        {
+            var files = Directory.GetFiles(@"images\jesus");
+
+            using (var stream = System.IO.File.OpenRead(files.GetRandomElement()))
+            {
+                await Bot.SendPhotoAsync(message.Chat.Id, stream);
+            }
+        }
+
+        private static async Task SendGandhiMessage(Message message)
+        {
+            var files = Directory.GetFiles(@"images\gandhi");
+
+            using (var stream = System.IO.File.OpenRead(files.GetRandomElement()))
+            {
+                await Bot.SendPhotoAsync(message.Chat.Id, stream);
             }
         }
 
