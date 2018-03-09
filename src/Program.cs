@@ -2,8 +2,10 @@
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Telegram.Bot;
 using Telegram.Bot.Args;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
@@ -39,20 +41,60 @@ namespace Rodkulman.Telegram
 
             if (message == null || message.Type != MessageType.Text) { return; }
 
+            if (!message.Text.StartsWith("/"))
+            {
+                await ReplyRandomMessage(message);
+                return;
+            }
+
             switch (message.Text.Split(' ').First())
             {
                 case "/whatis":
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
-                    
+
                     foreach (var reply in WhatIsCommand.ReplyMessage(message.Text))
                     {
                         await Bot.SendTextMessageAsync(message.Chat.Id, reply, replyMarkup: new ReplyKeyboardRemove());
                         await Task.Delay(1000);
-                    } 
+                    }
+                    break;
+                case "/top":
+                    await SendTopMessage(message);
+                    break;
+                case "/communism":
+                    await SendCommunistPropaganda(message);
                     break;
                 default:
                     await Bot.SendTextMessageAsync(message.Chat.Id, "O que tu tentou fazer não é dank o suficiente", replyMarkup: new ReplyKeyboardRemove());
                     break;
+            }
+        }
+
+        private static async Task SendTopMessage(Message message)
+        {
+            await Bot.SendTextMessageAsync(message.Chat.Id, "https://twitter.com/neymarjr/status/19370237272", replyMarkup: new ReplyKeyboardRemove());
+        }
+
+        private static async Task ReplyRandomMessage(Message message)
+        {
+            if (Regex.IsMatch(message.Text, @"\b(russia|ussr|putin|comrade|jefer|communism|comunismo)\b"))
+            {
+                await SendCommunistPropaganda(message);
+            }
+            else if (Regex.IsMatch(message.Text, @"\btop\b"))
+            {
+                await SendTopMessage(message);
+            }
+        }
+
+        private static async Task SendCommunistPropaganda(Message message)
+        {
+            var rnd = new Random();
+            var files = Directory.GetFiles(@"images\communism");
+
+            using (var stream = System.IO.File.OpenRead(files[rnd.Next(0, files.Length)]))
+            {
+                await Bot.SendPhotoAsync(message.Chat.Id, stream);
             }
         }
 
