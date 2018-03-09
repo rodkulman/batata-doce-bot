@@ -89,10 +89,9 @@ namespace Rodkulman.Telegram
 
         private static async Task SendCommunistPropaganda(Message message)
         {
-            var rnd = new Random();
             var files = Directory.GetFiles(@"images\communism");
 
-            using (var stream = System.IO.File.OpenRead(files[rnd.Next(0, files.Length)]))
+            using (var stream = System.IO.File.OpenRead(files.GetRandomElement()))
             {
                 await Bot.SendPhotoAsync(message.Chat.Id, stream);
             }

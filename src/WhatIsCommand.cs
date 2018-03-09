@@ -10,7 +10,7 @@ namespace Rodkulman.Telegram
     {
         public static IEnumerable<string> ReplyMessage(string message)
         {
-            var tokens = message.Split(' ');
+            var tokens = message.Split(' ');            
 
             if (tokens.Length == 1)
             {
@@ -32,6 +32,10 @@ namespace Rodkulman.Telegram
                         yield break;
                     case "man":
                         yield return "a miserable pile of secrets";
+                        yield break;
+                    case "it":
+                    case "ti":
+                        yield return File.ReadAllLines(@"text-replies\whatis-it.txt").GetRandomElement();
                         yield break;
                     default:
                         yield return "te acalma fdp falta mais ifs nesse código";
