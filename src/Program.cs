@@ -77,11 +77,11 @@ namespace Rodkulman.Telegram
 
         private static async Task ReplyRandomMessage(Message message)
         {
-            if (Regex.IsMatch(message.Text, @"\b(russia|ussr|putin|comrade|jefer|communism|comunismo)\b"))
+            if (Regex.IsMatch(message.Text, @"\b(russia|ussr|putin|comrade|jefer|communism|comunismo)\b", RegexOptions.IgnoreCase))
             {
                 await SendCommunistPropaganda(message);
             }
-            else if (Regex.IsMatch(message.Text, @"\btop\b"))
+            else if (Regex.IsMatch(message.Text, @"\btop\b", RegexOptions.IgnoreCase))
             {
                 await SendTopMessage(message);
             }
