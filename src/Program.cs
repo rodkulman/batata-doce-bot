@@ -12,6 +12,8 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Net;
+using Newtonsoft.Json;
 
 namespace Rodkulman.Telegram
 {
@@ -20,17 +22,18 @@ namespace Rodkulman.Telegram
         internal static TelegramBotClient Bot;
         private static Timer tm;
         private static bool thursdayMessageSent = false;
+        private static DayOfWeek goodMorningMessageLastSent;
         private static readonly List<long> chatIds = new List<long>();
 
         public static void Main(string[] args)
         {
             var keys = JObject.Parse(IO.File.ReadAllText("keys.json"));
+            chatIds.AddRange(JArray.Parse(IO.File.ReadAllText(@"db\chats.json")).Select(x => x.Value<long>()));
 
             Bot = new TelegramBotClient(keys["Telegram"].Value<string>());
             tm = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromHours(1));
 
             Bot.OnMessage += BotOnMessageReceived;
-            Bot.OnMessageEdited += BotOnMessageReceived;
             Bot.OnReceiveError += BotOnReceiveError;
 
             var me = Bot.GetMeAsync().Result;
@@ -60,6 +63,27 @@ namespace Rodkulman.Telegram
             {
                 thursdayMessageSent = false;
             }
+
+            if (DateTime.Now.DayOfWeek != goodMorningMessageLastSent && DateTime.Now.Hour >= 8)
+            {
+                goodMorningMessageLastSent = DateTime.Now.DayOfWeek;
+                foreach (var id in chatIds)
+                {
+                    await SendRandomGoodMorningMessage(id);
+                }
+            }
+        }
+
+        private static async Task SendRandomGoodMorningMessage(long chatId)
+        {
+            var uri = (await GoogleImages.GetImages("bom+dia")).GetRandomElement();
+
+            var request = WebRequest.CreateHttp(uri);
+
+            using (var response = await request.GetResponseAsync())
+            {
+                await Bot.SendPhotoAsync(chatId, response.GetResponseStream());
+            }
         }
 
         private static async Task SendThurdayMessage(long chatId)
@@ -77,12 +101,9 @@ namespace Rodkulman.Telegram
 
             if (message == null) { return; }
 
-            if (!chatIds.Contains(message.Chat.Id))
-            {
-                chatIds.Add(message.Chat.Id);
-            }
-
             if (message.Type != MessageType.Text) { return; }
+
+            await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
             if (Reddit.ContainsSubredditMention(message.Text))
             {
@@ -109,9 +130,7 @@ namespace Rodkulman.Telegram
             switch (message.Text.Split(' ').First().ToLower())
             {
                 case "/whatis":
-                    await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
                     await WhatIsCommand.ReplyMessage(message);
-
                     break;
                 case "/top":
                     await SendTopMessage(message);
@@ -131,10 +150,45 @@ namespace Rodkulman.Telegram
                 case "/gandhi":
                     await SendRandomImageMessage(message, @"images\gandhi");
                     break;
+                case "/bomdia":
+                    await SendRandomGoodMorningMessage(message.Chat.Id);
+                    break;
+                case "/start":
+                    await SaveChat(message.Chat.Id);
+                    await Bot.SendTextMessageAsync(message.Chat.Id, $"Que começe a zueira", replyMarkup: new ReplyKeyboardRemove());
+                    break;
+                case "/stop":
+                    await RemoveChat(message.Chat.Id);
+                    await Bot.SendTextMessageAsync(message.Chat.Id, $"toma no cu vocês", replyMarkup: new ReplyKeyboardRemove());
+                    break;
                 default:
-                    await Bot.SendTextMessageAsync(message.Chat.Id, "O que tu tentou fazer não é dank o suficiente", replyMarkup: new ReplyKeyboardRemove());
+                    await Bot.SendTextMessageAsync(message.Chat.Id, $"{message.From.FirstName} para de tentar me bugar, porra", replyMarkup: new ReplyKeyboardRemove());
                     break;
             }
+        }
+
+        private static async Task SaveChat(long id)
+        {
+            if (!chatIds.Contains(id)) { chatIds.Add(id); }
+
+            using (var stream = IO.File.OpenWrite(@"db\chats.json"))
+            using (var textWriter = new IO.StreamWriter(stream))
+            using (var jsonWriter = new JsonTextWriter(textWriter))
+            {
+                await JArray.FromObject(chatIds).WriteToAsync(jsonWriter);
+            }            
+        }
+
+        private static async Task RemoveChat(long id)
+        {
+            if (chatIds.Contains(id)) { chatIds.Remove(id); }
+
+            using (var stream = IO.File.OpenWrite(@"db\chats.json"))
+            using (var textWriter = new IO.StreamWriter(stream))
+            using (var jsonWriter = new JsonTextWriter(textWriter))
+            {
+                await JArray.FromObject(chatIds).WriteToAsync(jsonWriter);
+            }            
         }
 
         private static async Task SendTopMessage(Message message)
