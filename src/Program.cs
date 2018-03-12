@@ -75,12 +75,19 @@ namespace Rodkulman.Telegram
         {
             var message = messageEventArgs.Message;
 
+            if (message == null) { return; }
+
             if (!chatIds.Contains(message.Chat.Id))
             {
                 chatIds.Add(message.Chat.Id);
             }
 
-            if (message == null || message.Type != MessageType.Text) { return; }
+            if (message.Type != MessageType.Text) { return; }
+
+            if (Reddit.ContainsSubredditMention(message.Text))
+            {
+                await Reddit.SendSneakPeek(message);
+            }
 
             if (!message.Text.StartsWith("/"))
             {
@@ -95,6 +102,9 @@ namespace Rodkulman.Telegram
 
                 return;
             }
+
+            // é uma menção de subreddit, não deve fazer nenhum comando
+            if (message.Text.StartsWith("/r/", StringComparison.OrdinalIgnoreCase)) { return; }
 
             switch (message.Text.Split(' ').First().ToLower())
             {
