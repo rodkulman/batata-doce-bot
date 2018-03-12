@@ -13,13 +13,20 @@ namespace Rodkulman.Telegram
             {
                 CreateConfigFile();
             }
-
-            config = JObject.Parse(File.ReadAllText(@"db\config.json"));
+            else
+            {
+                config = JObject.Parse(File.ReadAllText(@"db\config.json"));
+            }
         }
 
         private static void CreateConfigFile()
         {
-            throw new NotImplementedException();
+            config = new JObject(
+                new JProperty(nameof(GoodMorningMessageLastSent), DateTime.Now.DayOfWeek),
+                new JProperty(nameof(ThursdayMessageSent), false)
+            );
+
+            SaveConfig();
         }
 
         private static void SaveConfig()
@@ -36,17 +43,17 @@ namespace Rodkulman.Telegram
 
         public static DayOfWeek GoodMorningMessageLastSent
         {
-            get { return (DayOfWeek)Enum.Parse(typeof(DayOfWeek), config[nameof(GoodMorningMessageLastSent)].Value<string>()); }
+            get { return (DayOfWeek)config.Value<int>(nameof(GoodMorningMessageLastSent)); }
             set
             {
-                config[nameof(GoodMorningMessageLastSent)] = value.ToString();
+                config[nameof(GoodMorningMessageLastSent)] = (int)value;
                 SaveConfig();
             }
         }
 
         public static bool ThursdayMessageSent
         {
-            get { return config[nameof(ThursdayMessageSent)].Value<bool>(); }
+            get { return config.Value<bool>(nameof(ThursdayMessageSent)); }
             set
             {
                 config[nameof(ThursdayMessageSent)] = value;
