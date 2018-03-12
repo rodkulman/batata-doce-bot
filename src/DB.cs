@@ -22,13 +22,13 @@ namespace Rodkulman.Telegram
             throw new NotImplementedException();
         }
 
-        private static async void SaveConfig()
+        private static void SaveConfig()
         {
             using (var stream = File.OpenWrite(@"db\config.json"))
             using (var textWriter = new StreamWriter(stream))
             using (var jsonWriter = new JsonTextWriter(textWriter))
             {
-                await config.WriteToAsync(jsonWriter);
+                config.WriteTo(jsonWriter);
             }
         }
 
