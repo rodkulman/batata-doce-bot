@@ -21,8 +21,6 @@ namespace Rodkulman.Telegram
     {
         internal static TelegramBotClient Bot;
         private static Timer tm;
-        private static bool thursdayMessageSent = false;
-        private static DayOfWeek goodMorningMessageLastSent;
         private static readonly List<long> chatIds = new List<long>();
 
         public static void Main(string[] args)
@@ -50,9 +48,9 @@ namespace Rodkulman.Telegram
         {
             if (DateTime.Now.DayOfWeek == DayOfWeek.Thursday)
             {
-                if (DateTime.Now.Hour >= 8 && !thursdayMessageSent)
+                if (DateTime.Now.Hour >= 8 && !DB.ThursdayMessageSent)
                 {
-                    thursdayMessageSent = true;
+                    DB.ThursdayMessageSent = true;
                     foreach (var id in chatIds)
                     {
                         await SendThurdayMessage(id);
@@ -61,12 +59,12 @@ namespace Rodkulman.Telegram
             }
             else
             {
-                thursdayMessageSent = false;
+                DB.ThursdayMessageSent = false;
             }
 
-            if (DateTime.Now.DayOfWeek != goodMorningMessageLastSent && DateTime.Now.Hour >= 8)
+            if (DateTime.Now.DayOfWeek != DB.GoodMorningMessageLastSent && DateTime.Now.Hour >= 8)
             {
-                goodMorningMessageLastSent = DateTime.Now.DayOfWeek;
+                DB.GoodMorningMessageLastSent = DateTime.Now.DayOfWeek;
                 foreach (var id in chatIds)
                 {
                     await SendRandomGoodMorningMessage(id);
@@ -103,10 +101,9 @@ namespace Rodkulman.Telegram
 
             if (message.Type != MessageType.Text) { return; }
 
-            await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
-
             if (Reddit.ContainsSubredditMention(message.Text))
             {
+                await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
                 await Reddit.SendSneakPeek(message);
             }
 
@@ -114,6 +111,7 @@ namespace Rodkulman.Telegram
             {
                 if (WhatIsCommand.IsExpected(message))
                 {
+                    await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
                     await WhatIsCommand.ReplyMessage(message);
                 }
                 else
@@ -122,10 +120,12 @@ namespace Rodkulman.Telegram
                 }
 
                 return;
-            }
+            }            
 
             // é uma menção de subreddit, não deve fazer nenhum comando
             if (message.Text.StartsWith("/r/", StringComparison.OrdinalIgnoreCase)) { return; }
+
+            await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
             switch (message.Text.Split(' ').First().ToLower())
             {
