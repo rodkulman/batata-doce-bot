@@ -3,47 +3,97 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Rodkulman.Telegram
 {
     public static class WhatIsCommand
     {
-        public static IEnumerable<string> ReplyMessage(string message)
+        private class FromChatUser
         {
-            var tokens = message.Split(' ');            
-
-            if (tokens.Length == 1)
+            long chatId;
+            int userId;
+            public FromChatUser(long chatId, int userId)
             {
-                yield return "Pergunta alguma coisa né fio";
-                yield break;
+                this.chatId = chatId;
+                this.userId = userId;
             }
 
-            if (tokens.Length == 2)
+            public long ChatId => chatId;
+            public int UserId => userId;
+
+        }
+        private static List<FromChatUser> expected = new List<FromChatUser>();
+
+        public static bool IsExpected(Message message)
+        {
+            return expected.Any(x => x.ChatId == message.Chat.Id && x.UserId == message.From.Id);
+        }
+        public static async Task ReplyMessage(Message message)
+        {
+            var tokens = message.Text.Split(' ');
+
+            if (tokens.Length == 1 && tokens[0].StartsWith("/"))
             {
-                switch (tokens[1].ToLower())
+                ReplyKeyboardMarkup keyboard = new[]
                 {
-                    case "love":
-                        yield return "baby don't hurt me";
-                        yield return "don't hurt me";
-                        yield return "no more";
-                        yield break;
-                    case "life":
-                        yield return "42";
-                        yield break;
-                    case "man":
-                        yield return "a miserable pile of secrets";
-                        yield break;
-                    case "it":
-                    case "ti":
-                        yield return File.ReadAllLines(@"text-replies\whatis-it.txt").GetRandomElement();
-                        yield break;
-                    default:
-                        yield return "te acalma fdp falta mais ifs nesse código";
-                        yield break;
-                }
-            }
+                    new[] { "love", "life", "ti" },
+                };
 
-            yield return "não vale perguntar mais que duas coisas.";
+                expected.Add(new FromChatUser(message.Chat.Id, message.From.Id));
+
+                await Program.Bot.SendTextMessageAsync(message.Chat.Id, "Escolhe ai", replyToMessageId: message.MessageId, replyMarkup: keyboard);
+            }
+            else if (tokens.Length == 1 && !tokens[0].StartsWith("/"))
+            {
+                var toRemove = expected.FirstOrDefault(x => x.ChatId == message.Chat.Id && x.UserId == message.From.Id);
+                if (toRemove != null)
+                {
+                    expected.Remove(toRemove);
+                }
+                await ReplyToken(message, tokens[0]);
+            }
+            else if (tokens.Length == 2)
+            {
+                await ReplyToken(message, tokens[1]);
+            }
+            else
+            {
+                await SendReply(message, "não vale perguntar mais que uma coisa.");
+            }
+        }
+
+        private static async Task ReplyToken(Message message, string token)
+        {
+            switch (token.ToLower())
+            {
+                case "love":
+                    await SendReply(message, "baby don't hurt me");
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    await SendReply(message, "don't hurt me");
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    await SendReply(message, "no more");
+                    break;
+                case "life":
+                    await SendReply(message, "42");
+                    break;
+                case "man":
+                    await SendReply(message, "a miserable pile of secrets");
+                    break;
+                case "it":
+                case "ti":
+                    await SendReply(message, System.IO.File.ReadAllLines(@"text-replies\whatis-it.txt").GetRandomElement());
+                    break;
+                default:
+                    await SendReply(message, "te acalma fdp falta mais ifs nesse código");
+                    break;
+            }
+        }
+
+        private static async Task SendReply(Message message, string reply)
+        {
+            await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove());
         }
     }
 }

@@ -1,8 +1,11 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Generic;
+using IO = System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Types;
@@ -14,15 +17,20 @@ namespace Rodkulman.Telegram
 {
     public class Program
     {
-        public static readonly TelegramBotClient Bot = new TelegramBotClient("564117884:AAGwBXuL3v6AteHstPJ6_N3XdmWbN_BhBz8");
+        internal static TelegramBotClient Bot;
+        private static Timer tm;
+        private static bool thursdayMessageSent = false;
+        private static readonly List<long> chatIds = new List<long>();
 
         public static void Main(string[] args)
         {
+            var keys = JObject.Parse(IO.File.ReadAllText("keys.json"));
+
+            Bot = new TelegramBotClient(keys["Telegram"].Value<string>());
+            tm = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromHours(1));
+
             Bot.OnMessage += BotOnMessageReceived;
             Bot.OnMessageEdited += BotOnMessageReceived;
-            Bot.OnCallbackQuery += BotOnCallbackQueryReceived;
-            Bot.OnInlineQuery += BotOnInlineQueryReceived;
-            Bot.OnInlineResultChosen += BotOnChosenInlineResultReceived;
             Bot.OnReceiveError += BotOnReceiveError;
 
             var me = Bot.GetMeAsync().Result;
@@ -35,15 +43,56 @@ namespace Rodkulman.Telegram
             Bot.StopReceiving();
         }
 
+        private static async void TimerTick(object state)
+        {
+            if (DateTime.Now.DayOfWeek == DayOfWeek.Thursday)
+            {
+                if (DateTime.Now.Hour >= 8 && !thursdayMessageSent)
+                {
+                    thursdayMessageSent = true;
+                    foreach (var id in chatIds)
+                    {
+                        await SendThurdayMessage(id);
+                    }
+                }
+            }
+            else
+            {
+                thursdayMessageSent = false;
+            }
+        }
+
+        private static async Task SendThurdayMessage(long chatId)
+        {
+            await Bot.SendTextMessageAsync(chatId, IO.File.ReadAllText(@"text-replies\thursday.txt"), replyMarkup: new ReplyKeyboardRemove());
+            using (var stream = IO.File.OpenRead(@"audio\thursday.aac"))
+            {
+                await Bot.SendAudioAsync(chatId, stream, replyMarkup: new ReplyKeyboardRemove());
+            }
+        }
+
         private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
         {
             var message = messageEventArgs.Message;
+
+            if (!chatIds.Contains(message.Chat.Id))
+            {
+                chatIds.Add(message.Chat.Id);
+            }
 
             if (message == null || message.Type != MessageType.Text) { return; }
 
             if (!message.Text.StartsWith("/"))
             {
-                await ReplyRandomMessage(message);
+                if (WhatIsCommand.IsExpected(message))
+                {
+                    await WhatIsCommand.ReplyMessage(message);
+                }
+                else
+                {
+                    await ReplyRandomMessage(message);
+                }
+
                 return;
             }
 
@@ -51,27 +100,26 @@ namespace Rodkulman.Telegram
             {
                 case "/whatis":
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
+                    await WhatIsCommand.ReplyMessage(message);
 
-                    foreach (var reply in WhatIsCommand.ReplyMessage(message.Text))
-                    {
-                        await Bot.SendTextMessageAsync(message.Chat.Id, reply, replyMarkup: new ReplyKeyboardRemove());
-                        await Task.Delay(1000);
-                    }
                     break;
                 case "/top":
                     await SendTopMessage(message);
                     break;
+                case "/thursday":
+                    await SendThurdayMessage(message.Chat.Id);
+                    break;
                 case "/communism":
-                    await SendCommunistPropaganda(message);
+                    await SendRandomImageMessage(message, @"images\communism");
                     break;
                 case "/jesus":
-                    await SendJesusMessage(message);
+                    await SendRandomImageMessage(message, @"images\jesus");
                     break;
                 case "/ghandi":
                     await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyMarkup: new ReplyKeyboardRemove());
                     break;
                 case "/gandhi":
-                    await SendGandhiMessage(message);
+                    await SendRandomImageMessage(message, @"images\gandhi");
                     break;
                 default:
                     await Bot.SendTextMessageAsync(message.Chat.Id, "O que tu tentou fazer não é dank o suficiente", replyMarkup: new ReplyKeyboardRemove());
@@ -81,56 +129,46 @@ namespace Rodkulman.Telegram
 
         private static async Task SendTopMessage(Message message)
         {
-            await Bot.SendTextMessageAsync(message.Chat.Id, "https://twitter.com/neymarjr/status/19370237272", replyMarkup: new ReplyKeyboardRemove());
+            await Bot.SendTextMessageAsync(message.Chat.Id, "https://twitter.com/neymarjr/status/19370237272", replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove());
         }
 
         private static async Task ReplyRandomMessage(Message message)
         {
-            if (Regex.IsMatch(message.Text, @"\b(russia|ussr|putin|comrade|jefer|communism|comunismo)\b", RegexOptions.IgnoreCase))
-            {
-                await SendCommunistPropaganda(message);
-            }
-            else if (Regex.IsMatch(message.Text, @"\btop\b", RegexOptions.IgnoreCase))
-            {
-                await SendTopMessage(message);
-            }
-            else if (Regex.IsMatch(message.Text, @"\bghandi\b", RegexOptions.IgnoreCase))
-            {
-                await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyMarkup: new ReplyKeyboardRemove());
-            }
-            else if (Regex.IsMatch(message.Text, @"\bjesus\b", RegexOptions.IgnoreCase))
-            {
-                await SendJesusMessage(message);
-            }
-        }
+            var communismKeywords = await IO.File.ReadAllLinesAsync(@"keywords\communism.txt");
+            var topKeywords = await IO.File.ReadAllLinesAsync(@"keywords\top.txt");
+            var jesusKeywords = await IO.File.ReadAllLinesAsync(@"keywords\jesus.txt");
 
-        private static async Task SendJesusMessage(Message message)
-        {
-            var files = Directory.GetFiles(@"images\jesus");
-
-            using (var stream = System.IO.File.OpenRead(files.GetRandomElement()))
+            foreach (Match match in Regex.Matches(message.Text, @"\b.+?\b"))
             {
-                await Bot.SendPhotoAsync(message.Chat.Id, stream);
-            }
-        }
+                if (communismKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
+                {
+                    await SendRandomImageMessage(message, @"images\communism");
+                }
 
-        private static async Task SendGandhiMessage(Message message)
-        {
-            var files = Directory.GetFiles(@"images\gandhi");
+                if (topKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
+                {
+                    await SendTopMessage(message);
+                }
 
-            using (var stream = System.IO.File.OpenRead(files.GetRandomElement()))
-            {
-                await Bot.SendPhotoAsync(message.Chat.Id, stream);
+                if (match.Value.Equals("ghandi", StringComparison.OrdinalIgnoreCase))
+                {
+                    await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove());
+                }
+
+                if (jesusKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
+                {
+                    await SendRandomImageMessage(message, @"images\jesus");
+                }
             }
         }
 
-        private static async Task SendCommunistPropaganda(Message message)
+        private static async Task SendRandomImageMessage(Message message, string path)
         {
-            var files = Directory.GetFiles(@"images\communism");
+            var files = IO.Directory.GetFiles(path);
 
             using (var stream = System.IO.File.OpenRead(files.GetRandomElement()))
             {
-                await Bot.SendPhotoAsync(message.Chat.Id, stream);
+                await Bot.SendStickerAsync(message.Chat.Id, stream, replyToMessageId: message.MessageId);
             }
         }
 
@@ -139,47 +177,6 @@ namespace Rodkulman.Telegram
             await Bot.AnswerCallbackQueryAsync(
                 callbackQueryEventArgs.CallbackQuery.Id,
                 $"Received {callbackQueryEventArgs.CallbackQuery.Data}");
-        }
-
-        private static async void BotOnInlineQueryReceived(object sender, InlineQueryEventArgs inlineQueryEventArgs)
-        {
-            Console.WriteLine($"Received inline query from: {inlineQueryEventArgs.InlineQuery.From.Id}");
-
-            InlineQueryResultBase[] results = {
-                new InlineQueryResultLocation(
-                    id: "1",
-                    latitude: 40.7058316f,
-                    longitude: -74.2581888f,
-                    title: "New York")   // displayed result
-                    {
-                        InputMessageContent = new InputLocationMessageContent(
-                            latitude: 40.7058316f,
-                            longitude: -74.2581888f)    // message if result is selected
-                    },
-
-                new InlineQueryResultLocation(
-                    id: "2",
-                    latitude: 13.1449577f,
-                    longitude: 52.507629f,
-                    title: "Berlin") // displayed result
-                    {
-
-                        InputMessageContent = new InputLocationMessageContent(
-                            latitude: 13.1449577f,
-                            longitude: 52.507629f)   // message if result is selected
-                    }
-            };
-
-            await Bot.AnswerInlineQueryAsync(
-                inlineQueryEventArgs.InlineQuery.Id,
-                results,
-                isPersonal: true,
-                cacheTime: 0);
-        }
-
-        private static void BotOnChosenInlineResultReceived(object sender, ChosenInlineResultEventArgs chosenInlineResultEventArgs)
-        {
-            Console.WriteLine($"Received inline result: {chosenInlineResultEventArgs.ChosenInlineResult.ResultId}");
         }
 
         private static void BotOnReceiveError(object sender, ReceiveErrorEventArgs receiveErrorEventArgs)
