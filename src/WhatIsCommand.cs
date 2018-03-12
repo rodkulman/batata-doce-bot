@@ -38,7 +38,8 @@ namespace Rodkulman.Telegram
             {
                 ReplyKeyboardMarkup keyboard = new[]
                 {
-                    new[] { "love", "life", "ti" },
+                    new[] { "love", "life"},
+                    new[] { "man", "ti" },
                 };
 
                 expected.Add(new FromChatUser(message.Chat.Id, message.From.Id));
