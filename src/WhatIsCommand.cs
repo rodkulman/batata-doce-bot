@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Rodkulman.Telegram
@@ -32,6 +33,8 @@ namespace Rodkulman.Telegram
         }
         public static async Task ReplyMessage(Message message)
         {
+            await Program.Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
+
             var tokens = message.Text.Split(' ');
 
             if (tokens.Length == 1 && tokens[0].StartsWith("/"))
@@ -72,9 +75,9 @@ namespace Rodkulman.Telegram
                 case "love":
                     await SendReply(message, "baby don't hurt me");
                     await Task.Delay(TimeSpan.FromSeconds(1));
-                    await SendReply(message, "don't hurt me");
+                    await Program.Bot.SendTextMessageAsync(message.Chat.Id, "don't hurt me");
                     await Task.Delay(TimeSpan.FromSeconds(1));
-                    await SendReply(message, "no more");
+                    await Program.Bot.SendTextMessageAsync(message.Chat.Id, "no more");
                     break;
                 case "life":
                     await SendReply(message, "42");
