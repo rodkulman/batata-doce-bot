@@ -14,6 +14,7 @@ using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 using System.Net;
 using Newtonsoft.Json;
+using System.Text;
 
 namespace Rodkulman.Telegram
 {
@@ -23,9 +24,11 @@ namespace Rodkulman.Telegram
         private static Timer tm;
         private static readonly List<long> chatIds = new List<long>();
 
+        private static JObject keys;
+
         public static void Main(string[] args)
         {
-            var keys = JObject.Parse(IO.File.ReadAllText("keys.json"));
+            keys = JObject.Parse(IO.File.ReadAllText("keys.json"));
             chatIds.AddRange(JArray.Parse(IO.File.ReadAllText(@"db\chats.json")).Select(x => x.Value<long>()));
 
             Bot = new TelegramBotClient(keys["Telegram"].Value<string>());
@@ -165,11 +168,115 @@ namespace Rodkulman.Telegram
                     await RemoveChat(message.Chat.Id);
                     await Bot.SendTextMessageAsync(message.Chat.Id, $"toma no cu vocês", replyMarkup: new ReplyKeyboardRemove());
                     break;
+                case "/roll":
+                    await SendRollDiceMessage(message);
+                    break;
                 default:
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
                     await Bot.SendTextMessageAsync(message.Chat.Id, $"{message.From.FirstName} para de tentar me bugar, porra", replyMarkup: new ReplyKeyboardRemove());
                     break;
             }
+        }
+
+        private static async Task SendRollDiceMessage(Message message)
+        {
+            var match = Regex.Match(message.Text, @"(?<DiceCount>\d+)?d(?<DiceSides>\d+)(?<Modifier>(\+|\-)\d+)?", RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+            {
+                await Bot.SendTextMessageAsync(message.Chat.Id, "Rolagens devem estar no formato XdY(+|-)Z");
+                return;
+            }
+
+            var diceCount = string.IsNullOrWhiteSpace(match.Groups["DiceCount"].Value) ? 1 : int.Parse(match.Groups["DiceCount"].Value);
+            var diceSides = int.Parse(match.Groups["DiceSides"].Value);
+            var modifier = match.Groups["Modifier"].Value;
+
+            // var rolls = await RequestRandomOrgNumbers(diceCount, diceSides);
+            var rolls = RollDice(diceCount, diceSides).ToList();
+
+            var reply = "(";
+
+            foreach (var roll in rolls)
+            {
+                if (roll == 1 || roll == diceSides)
+                {
+                    reply += $"*{roll}*, ";
+                }
+                else
+                {
+                    reply += $"{roll}, ";
+                }
+            }
+
+            reply = reply.Substring(0, reply.Length - 2) + ") = ";
+
+            var total = rolls.Sum();
+            if (!string.IsNullOrWhiteSpace(modifier))
+            {
+                switch (modifier.Substring(0, 1))
+                {
+                    case "+":
+                        total += int.Parse(modifier.Substring(1));
+                        break;
+                    case "-":
+                        total -= int.Parse(modifier.Substring(1));
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            reply += $"*{total}*";
+
+            await Bot.SendTextMessageAsync(message.Chat.Id, reply, ParseMode.Markdown);
+        }
+
+        private static IEnumerable<int> RollDice(int diceCount, int diceSides)
+        {
+            var rnd = new Random();
+
+            for (int i = 0; i < diceCount; i++)
+            {
+                yield return rnd.Next(0, diceSides) + 1;
+            }
+        }
+
+        private static async Task<IEnumerable<int>> RequestRandomOrgNumbers(int diceCount, int diceSides)
+        {
+            var request = WebRequest.CreateHttp("https://api.random.org/json-rpc/1/invoke");
+            request.ContentType = "application/json-rpc";
+            request.Method = "POST";
+
+            var jRequest = new JObject(
+                new JProperty("jsonrpc", "2.0"),
+                new JProperty("method", "generateIntegers"),
+                new JProperty("params", new JObject(
+                    new JProperty("apiKey", keys.Value<string>("Random.org")),
+                    new JProperty("n", diceCount),
+                    new JProperty("min", 1),
+                    new JProperty("max", diceSides),
+                    new JProperty("replacement", true)
+                )),
+                new JProperty("id", 42)
+            );
+
+            using (var writer = new IO.StreamWriter(request.GetRequestStream(), Encoding.UTF8, 1024, true))
+            using (var jsonWriter = new JsonTextWriter(writer) { Formatting = Formatting.None })
+            {
+                jRequest.WriteTo(jsonWriter);
+            }
+
+            JObject jResponse;
+
+            using (var response = await request.GetResponseAsync())
+            using (var reader = new IO.StreamReader(response.GetResponseStream()))
+            using (var jsonReader = new JsonTextReader(reader))
+            {
+                jResponse = JObject.Load(jsonReader);
+            }
+
+            return jResponse["result"]["random"].Values<int>("data");
         }
 
         private static async Task SaveChat(long id)
@@ -242,13 +349,6 @@ namespace Rodkulman.Telegram
             {
                 await Bot.SendStickerAsync(message.Chat.Id, stream, replyToMessageId: message.MessageId);
             }
-        }
-
-        private static async void BotOnCallbackQueryReceived(object sender, CallbackQueryEventArgs callbackQueryEventArgs)
-        {
-            await Bot.AnswerCallbackQueryAsync(
-                callbackQueryEventArgs.CallbackQuery.Id,
-                $"Received {callbackQueryEventArgs.CallbackQuery.Data}");
         }
 
         private static void BotOnReceiveError(object sender, ReceiveErrorEventArgs receiveErrorEventArgs)
