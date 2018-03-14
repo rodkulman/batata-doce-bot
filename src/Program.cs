@@ -24,7 +24,7 @@ namespace Rodkulman.Telegram
         private static Timer tm;
         private static readonly List<long> chatIds = new List<long>();
         private static readonly Random rnd = new Random();
-        
+
         public static void Main(string[] args)
         {
             var keys = JObject.Parse(IO.File.ReadAllText("keys.json"));
@@ -62,14 +62,14 @@ namespace Rodkulman.Telegram
             else
             {
                 DB.ThursdayMessageSent = false;
-            }
 
-            if (DateTime.Now.DayOfWeek != DB.GoodMorningMessageLastSent && DateTime.Now.Hour >= 7)
-            {
-                DB.GoodMorningMessageLastSent = DateTime.Now.DayOfWeek;
-                foreach (var id in chatIds)
+                if (DateTime.Now.DayOfWeek != DB.GoodMorningMessageLastSent && DateTime.Now.Hour >= 7)
                 {
-                    await GoogleImages.SendRandomImage(id, "bom+dia");
+                    DB.GoodMorningMessageLastSent = DateTime.Now.DayOfWeek;
+                    foreach (var id in chatIds)
+                    {
+                        await GoogleImages.SendRandomImage(id, "bom+dia");
+                    }
                 }
             }
         }
@@ -230,7 +230,7 @@ namespace Rodkulman.Telegram
         }
 
         private static async Task SendRandomImageMessage(Message message, string path)
-        {            
+        {
             if (rnd.Next(0, 10) == 5)
             {
                 await Bot.SendTextMessageAsync(message.Chat.Id, "You have been bamboozled", replyToMessageId: message.MessageId);
