@@ -69,22 +69,8 @@ namespace Rodkulman.Telegram
                 DB.GoodMorningMessageLastSent = DateTime.Now.DayOfWeek;
                 foreach (var id in chatIds)
                 {
-                    await SendRandomGoodMorningMessage(id);
+                    await GoogleImages.SendRandomImage(id, "bom+dia");
                 }
-            }
-        }
-
-        private static async Task SendRandomGoodMorningMessage(long chatId)
-        {
-            await Bot.SendChatActionAsync(chatId, ChatAction.UploadPhoto);
-
-            var uri = (await GoogleImages.GetImages("bom+dia")).GetRandomElement();
-
-            var request = WebRequest.CreateHttp(uri);
-
-            using (var response = await request.GetResponseAsync())
-            {
-                await Bot.SendPhotoAsync(chatId, response.GetResponseStream());
             }
         }
 
@@ -157,7 +143,7 @@ namespace Rodkulman.Telegram
                     await SendRandomImageMessage(message, @"images\gandhi");
                     break;
                 case "/bomdia":
-                    await SendRandomGoodMorningMessage(message.Chat.Id);
+                    await GoogleImages.SendRandomImage(message.Chat.Id, "bom+dia");
                     break;
                 case "/start":
                     await SaveChat(message.Chat.Id);

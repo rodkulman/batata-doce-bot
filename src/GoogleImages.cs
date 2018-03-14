@@ -4,12 +4,25 @@ using System.IO;
 using System.Net;
 using System.Linq;
 using System.Threading.Tasks;
+using Telegram.Bot.Types.Enums;
 
 namespace Rodkulman.Telegram
 {
     // https://stackoverflow.com/questions/27846337/select-and-download-random-image-from-google/27847293#27847293
     public static class GoogleImages
     {
+        public static async Task SendRandomImage(long chatId, string topic){
+            await Program.Bot.SendChatActionAsync(chatId, ChatAction.UploadPhoto);
+
+            var uri = (await GoogleImages.GetImages(topic)).GetRandomElement();
+
+            var request = WebRequest.CreateHttp(uri);
+
+            using (var response = await request.GetResponseAsync())
+            {
+                await Program.Bot.SendPhotoAsync(chatId, response.GetResponseStream());
+            }
+        }
         public static async Task<Uri[]> GetImages(string topic)
         {
             string data;
