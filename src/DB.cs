@@ -7,40 +7,38 @@ namespace Rodkulman.Telegram
 {
     public static class DB
     {
-        static DB()
+        private static readonly JObject config = LoadOrCreateConfig();
+
+        private static readonly object lockKey = new object();
+
+        private static JObject LoadOrCreateConfig()
         {
             if (!File.Exists(@"db\config.json"))
             {
-                CreateConfigFile();
+                return new JObject(
+                    new JProperty(nameof(GoodMorningMessageLastSent), DateTime.Now.DayOfWeek),
+                    new JProperty(nameof(ThursdayMessageSent), false),
+                    new JProperty(nameof(WednesdayMyDudes), false)
+                );
             }
             else
             {
-                config = JObject.Parse(File.ReadAllText(@"db\config.json"));
+                return JObject.Parse(File.ReadAllText(@"db\config.json"));
             }
-        }
-
-        private static void CreateConfigFile()
-        {
-            config = new JObject(
-                new JProperty(nameof(GoodMorningMessageLastSent), DateTime.Now.DayOfWeek),
-                new JProperty(nameof(ThursdayMessageSent), false),
-                new JProperty(nameof(WednesdayMyDudes), false)
-            );
-
-            SaveConfig();
         }
 
         private static void SaveConfig()
         {
-            using (var stream = File.OpenWrite(@"db\config.json"))
-            using (var textWriter = new StreamWriter(stream))
-            using (var jsonWriter = new JsonTextWriter(textWriter))
+            lock (lockKey)
             {
-                config.WriteTo(jsonWriter);
+                using (var stream = File.OpenWrite(@"db\config.json"))
+                using (var textWriter = new StreamWriter(stream))
+                using (var jsonWriter = new JsonTextWriter(textWriter))
+                {
+                    config.WriteTo(jsonWriter);
+                }
             }
         }
-
-        private static JObject config;
 
         public static DayOfWeek GoodMorningMessageLastSent
         {
