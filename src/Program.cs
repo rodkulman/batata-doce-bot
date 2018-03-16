@@ -59,9 +59,21 @@ namespace Rodkulman.Telegram
                     }
                 }
             }
+            else if (DateTime.Now.DayOfWeek == DayOfWeek.Wednesday)
+            {
+                if (DateTime.Now.Hour >= 7 && !DB.WednesdayMyDudes)
+                {
+                    DB.WednesdayMyDudes = true;
+                    foreach (var id in chatIds)
+                    {
+                        await SendRandomImageMessage(id, @"images\wednesday", bamboozle: false);
+                    }
+                }
+            }
             else
             {
                 DB.ThursdayMessageSent = false;
+                DB.WednesdayMyDudes = false;
 
                 if (DateTime.Now.DayOfWeek != DB.GoodMorningMessageLastSent && DateTime.Now.Hour >= 7)
                 {
@@ -126,21 +138,24 @@ namespace Rodkulman.Telegram
                 case "/top":
                     await SendTopMessage(message);
                     break;
+                case "/wednesday":
+                    await SendRandomImageMessage(message.Chat.Id, @"images\wednesday", message.MessageId);
+                    break;
                 case "/thursday":
                     await SendThurdayMessage(message.Chat.Id);
                     break;
                 case "/communism":
-                    await SendRandomImageMessage(message, @"images\communism");
+                    await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
                     break;
                 case "/jesus":
-                    await SendRandomImageMessage(message, @"images\jesus");
+                    await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
                     break;
                 case "/ghandi":
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
                     await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyMarkup: new ReplyKeyboardRemove());
                     break;
                 case "/gandhi":
-                    await SendRandomImageMessage(message, @"images\gandhi");
+                    await SendRandomImageMessage(message.Chat.Id, @"images\gandhi", message.MessageId);
                     break;
                 case "/bomdia":
                     await GoogleImages.SendRandomImage(message.Chat.Id, "bom+dia");
@@ -158,7 +173,16 @@ namespace Rodkulman.Telegram
                     break;
                 default:
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
-                    await Bot.SendTextMessageAsync(message.Chat.Id, $"{message.From.FirstName} para de tentar me bugar, porra", replyMarkup: new ReplyKeyboardRemove());
+
+                    if (message.From.Username == "rodkulman")
+                    {
+                        await Bot.SendTextMessageAsync(message.Chat.Id, $"Desculpa meu mestre, mas o comando que você quis não existe 😞", replyMarkup: new ReplyKeyboardRemove());
+                    }
+                    else
+                    {
+                        await Bot.SendTextMessageAsync(message.Chat.Id, $"{message.From.FirstName} para de tentar me bugar, porra", replyMarkup: new ReplyKeyboardRemove());
+                    }
+                    
                     break;
             }
         }
@@ -204,7 +228,7 @@ namespace Rodkulman.Telegram
             {
                 if (communismKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
                 {
-                    await SendRandomImageMessage(message, @"images\communism");
+                    await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
                 }
 
                 if (topKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
@@ -219,7 +243,7 @@ namespace Rodkulman.Telegram
 
                 if (jesusKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
                 {
-                    await SendRandomImageMessage(message, @"images\jesus");
+                    await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
                 }
 
                 if (bamboozleKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
@@ -229,21 +253,21 @@ namespace Rodkulman.Telegram
             }
         }
 
-        private static async Task SendRandomImageMessage(Message message, string path)
+        private static async Task SendRandomImageMessage(long chatId, string path, int messageId = 0, bool bamboozle = true)
         {
-            if (rnd.Next(0, 10) == 5)
+            if (bamboozle && rnd.Next(0, 10) == 5)
             {
-                await Bot.SendTextMessageAsync(message.Chat.Id, "You have been bamboozled", replyToMessageId: message.MessageId);
+                await Bot.SendTextMessageAsync(chatId, "You have been bamboozled", replyToMessageId: messageId);
                 return;
             }
 
-            await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.UploadPhoto);
+            await Bot.SendChatActionAsync(chatId, ChatAction.UploadPhoto);
 
             var files = IO.Directory.GetFiles(path);
 
             using (var stream = System.IO.File.OpenRead(files.GetRandomElement()))
             {
-                await Bot.SendStickerAsync(message.Chat.Id, stream, replyToMessageId: message.MessageId);
+                await Bot.SendStickerAsync(chatId, stream, replyToMessageId: messageId);
             }
         }
 
