@@ -24,6 +24,7 @@ namespace Rodkulman.Telegram
         private static Timer tm;
         private static readonly List<long> chatIds = new List<long>();
         private static readonly Random rnd = new Random();
+        private static User me;
 
         public static void Main(string[] args)
         {
@@ -36,7 +37,7 @@ namespace Rodkulman.Telegram
             Bot.OnMessage += BotOnMessageReceived;
             Bot.OnReceiveError += BotOnReceiveError;
 
-            var me = Bot.GetMeAsync().Result;
+            me = Bot.GetMeAsync().Result;
 
             Bot.StartReceiving();
 
@@ -130,7 +131,21 @@ namespace Rodkulman.Telegram
             // é uma menção de subreddit, não deve fazer nenhum comando
             if (message.Text.StartsWith("/r/", StringComparison.OrdinalIgnoreCase)) { return; }
 
-            switch (message.Text.Split(' ').First().ToLower())
+            var command = message.Text.Split(' ').First().ToLower();
+
+            if (command.Contains("@"))
+            {
+                if (command.Substring(command.IndexOf("@") + 1).Equals(me.Username))
+                {
+                    command = command.Substring(0, command.IndexOf("@"));
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            switch (command)
             {
                 case "/whatis":
                     await WhatIsCommand.ReplyMessage(message);
