@@ -132,12 +132,14 @@ namespace Rodkulman.Telegram
             if (message.Text.StartsWith("/r/", StringComparison.OrdinalIgnoreCase)) { return; }
 
             var command = message.Text.Split(' ').First().ToLower();
+            var wasMentioned = false;
 
             if (command.Contains("@"))
             {
                 if (command.Substring(command.IndexOf("@") + 1).Equals(me.Username))
                 {
                     command = command.Substring(0, command.IndexOf("@"));
+                    wasMentioned = true;
                 }
                 else
                 {
@@ -187,17 +189,20 @@ namespace Rodkulman.Telegram
                     await DiceRolls.SendRollDiceMessage(message);
                     break;
                 default:
-                    await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
+                    if (message.Chat.Type == ChatType.Private || wasMentioned)
+                    {
+                        await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
-                    if (message.From.Username == "rodkulman")
-                    {
-                        await Bot.SendTextMessageAsync(message.Chat.Id, $"Desculpa meu mestre, mas o comando que você quis não existe 😞", replyMarkup: new ReplyKeyboardRemove());
+                        if (message.From.Username == "rodkulman")
+                        {
+                            await Bot.SendTextMessageAsync(message.Chat.Id, $"Desculpa meu mestre, mas o comando que você quis não existe 😞", replyMarkup: new ReplyKeyboardRemove());
+                        }
+                        else
+                        {
+                            await Bot.SendTextMessageAsync(message.Chat.Id, $"Porra {message.From.FirstName}, eu ainda não aprendi a fazer essa merda.", replyMarkup: new ReplyKeyboardRemove());
+                        }
                     }
-                    else
-                    {
-                        await Bot.SendTextMessageAsync(message.Chat.Id, $"{message.From.FirstName} para de tentar me bugar, porra", replyMarkup: new ReplyKeyboardRemove());
-                    }
-                    
+
                     break;
             }
         }
