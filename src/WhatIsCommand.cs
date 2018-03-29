@@ -55,8 +55,8 @@ namespace Rodkulman.Telegram
                 if (toRemove != null)
                 {
                     expected.Remove(toRemove);
+                    await ReplyToken(message, tokens[0]);
                 }
-                await ReplyToken(message, tokens[0]);
             }
             else if (tokens.Length == 2)
             {
@@ -64,7 +64,7 @@ namespace Rodkulman.Telegram
             }
             else
             {
-                await SendReply(message, "não vale perguntar mais que uma coisa.");
+                await UrbanDictionary.SendTermDefinition(message, String.Join("+", tokens.Skip(1)));
             }
         }
 
@@ -90,7 +90,7 @@ namespace Rodkulman.Telegram
                     await SendReply(message, System.IO.File.ReadAllLines(@"text-replies\whatis-it.txt").GetRandomElement());
                     break;
                 default:
-                    await SendReply(message, "te acalma fdp falta mais ifs nesse código");
+                    await UrbanDictionary.SendTermDefinition(message, token);
                     break;
             }
         }

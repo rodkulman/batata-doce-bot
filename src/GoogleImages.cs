@@ -11,7 +11,8 @@ namespace Rodkulman.Telegram
     // https://stackoverflow.com/questions/27846337/select-and-download-random-image-from-google/27847293#27847293
     public static class GoogleImages
     {
-        public static async Task SendRandomImage(long chatId, string topic){
+        public static async Task SendRandomImage(long chatId, string topic)
+        {
             await Program.Bot.SendChatActionAsync(chatId, ChatAction.UploadPhoto);
 
             var uri = (await GoogleImages.GetImages(topic)).GetRandomElement();
@@ -47,7 +48,7 @@ namespace Rodkulman.Telegram
             while (ndx >= 0)
             {
                 ndx = html.IndexOf("\"", ndx + 4, StringComparison.Ordinal) + 1;
-                
+
                 var ndx2 = html.IndexOf("\"", ndx, StringComparison.Ordinal);
                 var url = new Uri(html.Substring(ndx, ndx2 - ndx));
 
