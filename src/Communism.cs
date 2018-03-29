@@ -50,13 +50,13 @@ namespace Rodkulman.Telegram
                 {
                     var plural = wrongPossessive.EndsWith("s", StringComparison.OrdinalIgnoreCase);
 
-                    if (wrongPossessive.StartsWith("meu"))
+                    if (wrongPossessive.StartsWith("meu", StringComparison.OrdinalIgnoreCase))
                     {
-                        return "nosso" + (plural ? "s" : string.Empty);
+                        return "nosso" + (plural ? "s " : " ");
                     }
                     else
                     {
-                        return "nossa" + (plural ? "s" : string.Empty);
+                        return "nossa" + (plural ? "s " : " ");
                     }
                 }
             }
