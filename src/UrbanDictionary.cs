@@ -14,8 +14,6 @@ namespace Rodkulman.Telegram
 {
     public static class UrbanDictionary
     {
-        private static readonly Random rnd = new Random();
-
         public static async Task SendTermDefinition(Message message, string term)
         {
             var request = WebRequest.CreateHttp($"http://api.urbandictionary.com/v0/define?term={term}");
@@ -31,7 +29,7 @@ namespace Rodkulman.Telegram
 
             if (result["list"].Any())
             {
-                var definition = result["list"].ElementAt(rnd.Next(0, result["list"].Count()));
+                var definition = result["list"].GetRandomElement();
 
                 await Program.Bot.SendTextMessageAsync(message.Chat.Id, $"<a href=\"{definition.Value<string>("permalink")}\">{definition.Value<string>("definition")}</a>", replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove(), parseMode: ParseMode.Html, disableWebPagePreview: true);
             }

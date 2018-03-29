@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Rodkulman.Telegram
 {
@@ -8,6 +10,11 @@ namespace Rodkulman.Telegram
         public static T GetRandomElement<T>(this T[] array)
         {
             return array[rnd.Next(0, array.Length)];
+        }
+
+        public static T GetRandomElement<T>(this IEnumerable<T> array)
+        {
+            return array.ElementAt(rnd.Next(0, array.Count()));
         }
     }
 }
