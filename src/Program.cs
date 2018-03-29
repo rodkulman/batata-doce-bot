@@ -246,11 +246,6 @@ namespace Rodkulman.Telegram
 
             foreach (Match match in Regex.Matches(message.Text, @"\b.+?\b"))
             {
-                if (communismKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
-                {
-                    await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
-                }
-
                 if (topKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
                 {
                     await SendTopMessage(message);
@@ -261,16 +256,26 @@ namespace Rodkulman.Telegram
                     await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove());
                 }
 
-                if (jesusKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
-                {
-                    await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
-                }
-
                 if (bamboozleKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
                 {
                     await Bot.SendPhotoAsync(message.Chat.Id, IO.File.OpenRead(@"images\bamboozle\walter.jpg"), "I am the one who bamboozles!", replyToMessageId: message.MessageId);
                 }
             }
+
+            foreach (var match in Regex.Matches(message.Text, @"\b(.+?)\b\.(jpg|jpeg|bmp|png)", RegexOptions.IgnoreCase).Select(x => x.Groups.ElementAt(1)))
+            {
+                if (jesusKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
+                {
+                    await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
+                }
+
+                if (communismKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
+                {
+                    await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
+                }
+            }
+
+            await Communism.CorrectCapitalistInfidels(message);
         }
 
         private static async Task SendRandomImageMessage(long chatId, string path, int messageId = 0, bool bamboozle = true)
