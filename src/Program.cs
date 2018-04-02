@@ -188,6 +188,9 @@ namespace Rodkulman.Telegram
                 case "/roll":
                     await DiceRolls.SendRollDiceMessage(message);
                     break;
+                case "/dankmeme":
+                    await Bot.SendTextMessageAsync(message.Chat.Id, "Pede pro Memenator 😤");
+                    break;
                 default:
                     if (message.Chat.Type == ChatType.Private || wasMentioned)
                     {
