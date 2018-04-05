@@ -28,7 +28,7 @@ namespace Rodkulman.Telegram
 
         public static void Main(string[] args)
         {
-            var keys = JObject.Parse(IO.File.ReadAllText("keys.json"));
+            var keys = JObject.Parse(IO.File.ReadAllText(@"db\keys.json"));
             chatIds.AddRange(JArray.Parse(IO.File.ReadAllText(@"db\chats.json")).Select(x => x.Value<long>()));
 
             Bot = new TelegramBotClient(keys["Telegram"].Value<string>());
@@ -265,16 +265,24 @@ namespace Rodkulman.Telegram
                 }
             }
 
-            foreach (var match in Regex.Matches(message.Text, @"\b(.+?)\b\.(jpg|jpeg|bmp|png)", RegexOptions.IgnoreCase).Select(x => x.Groups.ElementAt(1)))
+            foreach (Match match in Regex.Matches(message.Text, @"\b(.+?)\b\.(jpg|jpeg|bmp|png)", RegexOptions.IgnoreCase))
             {
-                if (jesusKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
+                if (jesusKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
                 {
                     await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
                 }
 
-                if (communismKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
+                if (communismKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
                 {
                     await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
+                }
+
+                if (IO.File.Exists(IO.Path.Combine("images", match.Value)))
+                {
+                    using (var stream = System.IO.File.OpenRead(IO.Path.Combine("images", match.Value)))
+                    {
+                        await Bot.SendPhotoAsync(message.Chat.Id, stream);
+                    }
                 }
             }
 
