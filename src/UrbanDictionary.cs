@@ -14,7 +14,7 @@ namespace Rodkulman.Telegram
 {
     public static class UrbanDictionary
     {
-        public static async Task SendTermDefinition(Message message, string term)
+        public static async Task<string> SendTermDefinition(string term)
         {
             var request = WebRequest.CreateHttp($"http://api.urbandictionary.com/v0/define?term={term}");
             JObject result;
@@ -31,11 +31,11 @@ namespace Rodkulman.Telegram
             {
                 var definition = result["list"].GetRandomElement();
 
-                await Program.Bot.SendTextMessageAsync(message.Chat.Id, $"<a href=\"{definition.Value<string>("permalink")}\">{definition.Value<string>("definition")}</a>", replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove(), parseMode: ParseMode.Html, disableWebPagePreview: true);
+                return $"<a href=\"{definition.Value<string>("permalink")}\">{definition.Value<string>("definition")}</a>";
             }
             else
             {
-                await Program.Bot.SendTextMessageAsync(message.Chat.Id, "Nem eu sei 😂", replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove());
+                return "Nem eu sei 😂";
             }
         }
     }

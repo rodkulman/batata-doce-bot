@@ -64,8 +64,25 @@ namespace Rodkulman.Telegram
             }
             else
             {
-                await UrbanDictionary.SendTermDefinition(message, String.Join("+", tokens.Skip(1)));
+                await SendTermDefinition(message, String.Join("+", tokens.Skip(1)));
             }
+        }
+
+        private static async Task SendTermDefinition(Message message, string token)
+        {
+            string reply;
+
+            switch (await DetectLanguage.Detect(token))
+            {
+                case "pt":
+                    reply = DicionarioInformal.GetDefinition(token);
+                    break;
+                default:
+                    reply = await UrbanDictionary.SendTermDefinition(token);
+                    break;
+            }
+
+            await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove(), parseMode: ParseMode.Html, disableWebPagePreview: true);
         }
 
         private static async Task ReplyToken(Message message, string token)
@@ -90,7 +107,7 @@ namespace Rodkulman.Telegram
                     await SendReply(message, System.IO.File.ReadAllLines(@"text-replies\whatis-it.txt").GetRandomElement());
                     break;
                 default:
-                    await UrbanDictionary.SendTermDefinition(message, token);
+                    await SendTermDefinition(message, token);
                     break;
             }
         }
