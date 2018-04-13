@@ -88,7 +88,7 @@ namespace Rodkulman.Telegram
             }
 
             var request = WebRequest.CreateHttp("https://api.random.org/json-rpc/1/invoke");
-            request.ContentType = "application/json-rpc";
+            request.ContentType = "application/json";
             request.Method = "POST";
 
             var jRequest = new JObject(
