@@ -279,7 +279,9 @@ namespace Rodkulman.Telegram
 
                 if (IO.File.Exists(IO.Path.Combine("images", match.Value)))
                 {
-                    using (var stream = System.IO.File.OpenRead(IO.Path.Combine("images", match.Value)))
+                    await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.UploadPhoto);
+
+                    using (var stream = IO.File.OpenRead(IO.Path.Combine("images", match.Value)))
                     {
                         await Bot.SendPhotoAsync(message.Chat.Id, stream);
                     }
