@@ -28,10 +28,9 @@ namespace Rodkulman.Telegram
 
         public static void Main(string[] args)
         {
-            var keys = JObject.Parse(IO.File.ReadAllText(@"db\keys.json"));
             chatIds.AddRange(JArray.Parse(IO.File.ReadAllText(@"db\chats.json")).Select(x => x.Value<long>()));
 
-            Bot = new TelegramBotClient(keys["Telegram"].Value<string>());
+            Bot = new TelegramBotClient(Keys.Get("Telegram"));
             tm = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));
 
             Bot.OnMessage += BotOnMessageReceived;

@@ -15,7 +15,6 @@ namespace Rodkulman.Telegram
 {
     public static class DiceRolls
     {
-        private static string key;
         public static async Task SendRollDiceMessage(Message message)
         {
             var match = Regex.Match(message.Text, @"(?<DiceCount>\d+)?d(?<DiceSides>\d+)(?<Modifier>(\+|\-)\d+)?", RegexOptions.IgnoreCase);
@@ -82,11 +81,6 @@ namespace Rodkulman.Telegram
 
         private static async Task<IEnumerable<int>> RequestRandomOrgNumbers(int diceCount, int diceSides)
         {
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                key = JObject.Parse(System.IO.File.ReadAllText("keys.json")).Value<string>("Random.org");
-            }
-
             var request = WebRequest.CreateHttp("https://api.random.org/json-rpc/1/invoke");
             request.ContentType = "application/json";
             request.Method = "POST";
@@ -95,7 +89,7 @@ namespace Rodkulman.Telegram
                 new JProperty("jsonrpc", "2.0"),
                 new JProperty("method", "generateIntegers"),
                 new JProperty("params", new JObject(
-                    new JProperty("apiKey", key),
+                    new JProperty("apiKey", Keys.Get("Random.org")),
                     new JProperty("n", diceCount),
                     new JProperty("min", 1),
                     new JProperty("max", diceSides),
