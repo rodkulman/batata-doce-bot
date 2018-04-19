@@ -124,27 +124,6 @@ namespace Rodkulman.Telegram
                     await ReplyRandomMessage(message);
                 }
 
-                var animes = Anime.GetAnimes(message.Text);
-
-                if (animes.Any())
-                {
-                    var reply = string.Empty;
-
-                    foreach (var anime in animes)
-                    {
-                        if (await Anime.GetMALLink(anime) is Uri link)
-                        {
-                            reply += $"<a href=\"{link}\">{anime}</a>\n";
-                        }
-                        else
-                        {
-                            reply += $"{anime} not found\n";
-                        }
-                    }
-
-                    await Bot.SendTextMessageAsync(message.Chat.Id, reply.Trim(), ParseMode.Html, replyToMessageId: message.MessageId);
-                }
-
                 return;
             }
 
