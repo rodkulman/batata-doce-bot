@@ -18,7 +18,8 @@ namespace Rodkulman.Telegram
                 return new JObject(
                     new JProperty(nameof(GoodMorningMessageLastSent), DateTime.Now.DayOfWeek),
                     new JProperty(nameof(ThursdayMessageSent), false),
-                    new JProperty(nameof(WednesdayMyDudes), false)
+                    new JProperty(nameof(WednesdayMyDudes), false),
+                    new JProperty(nameof(GottaGetDownOnFriday), false)
                 );
             }
             else
@@ -66,6 +67,16 @@ namespace Rodkulman.Telegram
             set
             {
                 config[nameof(ThursdayMessageSent)] = value;
+                SaveConfig();
+            }
+        }
+
+        public static bool GottaGetDownOnFriday
+        {
+            get { return config.Value<bool>(nameof(GottaGetDownOnFriday)); }
+            set
+            {
+                config[nameof(GottaGetDownOnFriday)] = value;
                 SaveConfig();
             }
         }

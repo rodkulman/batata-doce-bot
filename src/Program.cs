@@ -70,10 +70,22 @@ namespace Rodkulman.Telegram
                     }
                 }
             }
+            else if (DateTime.Now.DayOfWeek == DayOfWeek.Friday)
+            {
+                if (DateTime.Now.Hour >= 7 && !DB.GottaGetDownOnFriday)
+                {
+                    DB.GottaGetDownOnFriday = true;
+                    foreach (var id in chatIds)
+                    {
+                        await Bot.SendTextMessageAsync(id, $"<a href=\"https://www.youtube.com/watch?v=kfVsfOSbJY0\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
+                    }
+                }
+            }
             else
             {
                 DB.ThursdayMessageSent = false;
                 DB.WednesdayMyDudes = false;
+                DB.GottaGetDownOnFriday = false;
 
                 if (DateTime.Now.DayOfWeek != DB.GoodMorningMessageLastSent && DateTime.Now.Hour >= 7)
                 {
@@ -159,6 +171,9 @@ namespace Rodkulman.Telegram
                     break;
                 case "/thursday":
                     await SendThurdayMessage(message.Chat.Id);
+                    break;
+                case "/friday":
+                    await Bot.SendTextMessageAsync(message.Chat.Id, $"<a href=\"https://www.youtube.com/watch?v=kfVsfOSbJY0\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
                     break;
                 case "/communism":
                     await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
