@@ -21,7 +21,7 @@ namespace Rodkulman.Telegram
 
         public async static Task SendSneakPeek(Message message)
         {
-            foreach (Match match in Regex.Matches(message.Text, @"\br/(?<Subreddit>.+?)\b", RegexOptions.IgnoreCase))
+            foreach (Match match in Regex.Matches(message.Text, @"(?<!com/)\br/(?<Subreddit>.+?)\b", RegexOptions.IgnoreCase))
             {
                 var j = await GetRedditTop3(match.Groups["Subreddit"].Value);
                 var subreddit = match.Groups["Subreddit"].Value;
