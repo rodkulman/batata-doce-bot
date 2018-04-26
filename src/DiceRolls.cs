@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RestSharp;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -15,6 +16,7 @@ namespace Rodkulman.Telegram
 {
     public static class DiceRolls
     {
+        private static readonly RestClient client = new RestClient("https://www.random.org");
         public static async Task SendRollDiceMessage(Message message)
         {
             var match = Regex.Match(message.Text, @"(?<DiceCount>\d+)?d(?<DiceSides>\d+)(?<Modifier>(\+|\-)\d+)?", RegexOptions.IgnoreCase);
@@ -29,8 +31,7 @@ namespace Rodkulman.Telegram
             var diceSides = int.Parse(match.Groups["DiceSides"].Value);
             var modifier = match.Groups["Modifier"].Value;
 
-            // var rolls = await RequestRandomOrgNumbers(diceCount, diceSides);
-            var rolls = RollDice(diceCount, diceSides).ToList();
+            var rolls = (await RequestRandomOrgNumbers(diceCount, diceSides)).ToList();
 
             var reply = "(";
 
@@ -81,39 +82,26 @@ namespace Rodkulman.Telegram
 
         private static async Task<IEnumerable<int>> RequestRandomOrgNumbers(int diceCount, int diceSides)
         {
-            var request = WebRequest.CreateHttp("https://api.random.org/json-rpc/1/invoke");
-            request.ContentType = "application/json";
-            request.Method = "POST";
+            var request = new RestRequest("integers", Method.GET);
+            
+            request.AddParameter("num", diceCount);
+            request.AddParameter("min", 1);
+            request.AddParameter("max", diceSides);
+            request.AddParameter("col", 1);
+            request.AddParameter("base", 10);
+            request.AddParameter("format", "plain");
+            request.AddParameter("rnd", true);
 
-            var jRequest = new JObject(
-                new JProperty("jsonrpc", "2.0"),
-                new JProperty("method", "generateIntegers"),
-                new JProperty("params", new JObject(
-                    new JProperty("apiKey", Keys.Get("Random.org")),
-                    new JProperty("n", diceCount),
-                    new JProperty("min", 1),
-                    new JProperty("max", diceSides),
-                    new JProperty("replacement", true)
-                )),
-                new JProperty("id", 42)
-            );
+            var response = await client.ExecuteTaskAsync(request);
 
-            using (var writer = new StreamWriter(request.GetRequestStream(), Encoding.UTF8, 1024, true))
-            using (var jsonWriter = new JsonTextWriter(writer) { Formatting = Formatting.None })
+            if (response.IsSuccessful)
             {
-                jRequest.WriteTo(jsonWriter);
+                return response.Content.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x));
             }
-
-            JObject jResponse;
-
-            using (var response = await request.GetResponseAsync())
-            using (var reader = new StreamReader(response.GetResponseStream()))
-            using (var jsonReader = new JsonTextReader(reader))
+            else
             {
-                jResponse = JObject.Load(jsonReader);
+                return RollDice(diceCount, diceSides);
             }
-
-            return jResponse["result"]["random"].Values<int>("data");
         }
     }
 }
