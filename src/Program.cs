@@ -288,23 +288,27 @@ namespace Rodkulman.Telegram
 
             foreach (Match match in Regex.Matches(message.Text, @"\b(.+?)\b\.(jpg|jpeg|bmp|png)", RegexOptions.IgnoreCase))
             {
-                if (jesusKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
-                {
-                    await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
-                }
+                var directImage = IO.Directory.EnumerateFiles("images", "*", IO.SearchOption.AllDirectories).FirstOrDefault(x => IO.Path.GetFileName(x).Equals(match.Value.Trim(), StringComparison.OrdinalIgnoreCase));
 
-                if (communismKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
-                {
-                    await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
-                }
-
-                if (IO.File.Exists(IO.Path.Combine("images", match.Value)))
+                if (!string.IsNullOrWhiteSpace(directImage))
                 {
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.UploadPhoto);
 
-                    using (var stream = IO.File.OpenRead(IO.Path.Combine("images", match.Value)))
+                    using (var stream = IO.File.OpenRead(directImage))
                     {
                         await Bot.SendPhotoAsync(message.Chat.Id, stream);
+                    }
+                }
+                else
+                {
+                    if (jesusKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
+                    {
+                        await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
+                    }
+
+                    if (communismKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
+                    {
+                        await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
                     }
                 }
             }
@@ -320,7 +324,7 @@ namespace Rodkulman.Telegram
                 {
                     await Bot.SendPhotoAsync(chatId, stream, replyToMessageId: messageId, caption: "bamboozled");
                 }
-                
+
                 return;
             }
 
