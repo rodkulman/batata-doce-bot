@@ -55,6 +55,8 @@ namespace Rodkulman.Telegram
 
             if (j["data"].Value<int>("dist") == 0) { return; }
 
+            await Program.Bot.SendChatActionAsync(message.Chat.Id, ChatAction.UploadPhoto);
+
             if (j["data"]["children"].Where(x => x["data"].Value<string>("post_hint") == "image" && isDirectImageLink(x["data"].Value<string>("url"))).GetRandomElement() is JObject post)
             {
                 var request = WebRequest.CreateHttp(post["data"].Value<string>("url"));

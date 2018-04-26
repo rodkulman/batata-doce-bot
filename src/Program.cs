@@ -203,7 +203,7 @@ namespace Rodkulman.Telegram
                     await DiceRolls.SendRollDiceMessage(message);
                     break;
                 case "/dankmeme":
-                    await Bot.SendTextMessageAsync(message.Chat.Id, "Pede pro Memenator 😤");
+                    await Reddit.GetRandomImage(message, IO.File.ReadAllLines(@"text-lists\meme-subreddit.txt").GetRandomElement());
                     break;
                 default:
                     if (message.Chat.Type == ChatType.Private || wasMentioned)
