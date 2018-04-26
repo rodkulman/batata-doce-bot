@@ -226,8 +226,8 @@ namespace Rodkulman.Telegram
 
         private static async Task SendFridayLink(long chatId)
         {
-            var link = (new[] {"https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=kfVsfOSbJY0"}).GetRandomElement();
-            
+            var link = (new[] { "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=kfVsfOSbJY0" }).GetRandomElement();
+
             await Bot.SendTextMessageAsync(chatId, $"<a href=\"{link}\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
         }
 
@@ -316,7 +316,11 @@ namespace Rodkulman.Telegram
         {
             if (bamboozle && rnd.Next(0, 10) == 5)
             {
-                await Bot.SendTextMessageAsync(chatId, "You have been bamboozled", replyToMessageId: messageId);
+                using (var stream = System.IO.File.OpenRead(@"images\rick.png"))
+                {
+                    await Bot.SendPhotoAsync(chatId, stream, replyToMessageId: messageId, caption: "bamboozled");
+                }
+                
                 return;
             }
 
