@@ -286,7 +286,7 @@ namespace Rodkulman.Telegram
                 }
             }
 
-            foreach (Match match in Regex.Matches(message.Text, @"\b(.+?)\b\.(jpg|jpeg|bmp|png)", RegexOptions.IgnoreCase))
+            foreach (Match match in Regex.Matches(message.Text, @"\b(.+?)\b\.(jpg|jpeg|bmp|png|gif)", RegexOptions.IgnoreCase))
             {
                 var directImage = IO.Directory.EnumerateFiles("images", "*", IO.SearchOption.AllDirectories).FirstOrDefault(x => IO.Path.GetFileName(x).Equals(match.Value.Trim(), StringComparison.OrdinalIgnoreCase));
 
@@ -296,7 +296,14 @@ namespace Rodkulman.Telegram
 
                     using (var stream = IO.File.OpenRead(directImage))
                     {
-                        await Bot.SendPhotoAsync(message.Chat.Id, stream);
+                        if (match.Groups[2].Value.Equals("gif", StringComparison.OrdinalIgnoreCase))
+                        {
+                            await Bot.SendVideoAsync(message.Chat.Id, stream, replyToMessageId: message.MessageId);
+                        }
+                        else
+                        {
+                            await Bot.SendPhotoAsync(message.Chat.Id, stream, replyToMessageId: message.MessageId);
+                        }
                     }
                 }
                 else
