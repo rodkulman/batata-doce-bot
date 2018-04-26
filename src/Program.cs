@@ -77,7 +77,7 @@ namespace Rodkulman.Telegram
                     DB.GottaGetDownOnFriday = true;
                     foreach (var id in chatIds)
                     {
-                        await Bot.SendTextMessageAsync(id, $"<a href=\"https://www.youtube.com/watch?v=kfVsfOSbJY0\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
+                        await SendFridayLink(id);
                     }
                 }
             }
@@ -173,7 +173,7 @@ namespace Rodkulman.Telegram
                     await SendThurdayMessage(message.Chat.Id);
                     break;
                 case "/friday":
-                    await Bot.SendTextMessageAsync(message.Chat.Id, $"<a href=\"https://www.youtube.com/watch?v=kfVsfOSbJY0\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
+                    await SendFridayLink(message.Chat.Id);
                     break;
                 case "/communism":
                     await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
@@ -222,6 +222,13 @@ namespace Rodkulman.Telegram
 
                     break;
             }
+        }
+
+        private static async Task SendFridayLink(long chatId)
+        {
+            var link = (new[] {"https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=kfVsfOSbJY0"}).GetRandomElement();
+            
+            await Bot.SendTextMessageAsync(chatId, $"<a href=\"{link}\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
         }
 
         private static async Task SaveChat(long id)
