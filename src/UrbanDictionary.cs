@@ -9,22 +9,29 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types.Enums;
+using RestSharp;
 
 namespace Rodkulman.Telegram
 {
     public static class UrbanDictionary
     {
+        private static readonly RestClient client = new RestClient("http://api.urbandictionary.com");
         public static async Task<string> SendTermDefinition(string term)
         {
-            var request = WebRequest.CreateHttp($"http://api.urbandictionary.com/v0/define?term={term}");
             JObject result;
 
-            using (var response = await request.GetResponseAsync())
-            using (var stream = response.GetResponseStream())
-            using (var textReader = new StreamReader(stream))
-            using (var jsonReader = new JsonTextReader(textReader))
+            var request = new RestRequest("v0/define", Method.GET);
+            request.AddParameter("term", term);
+
+            var reponse = await client.ExecuteTaskAsync(request);
+
+            if (reponse.IsSuccessful)
             {
-                result = await JObject.LoadAsync(jsonReader);
+                result = JObject.Parse(reponse.Content);
+            }
+            else
+            {
+                return "Nem eu sei 😂";
             }
 
             if (result["list"].Any())
