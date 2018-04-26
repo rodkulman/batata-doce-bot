@@ -9,11 +9,13 @@ using Newtonsoft.Json.Linq;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types.Enums;
 using System.Linq;
+using RestSharp;
 
 namespace Rodkulman.Telegram
 {
     public static class Reddit
     {
+        private static readonly RestClient client = new RestClient("https://www.reddit.com");
         public static bool ContainsSubredditMention(string text)
         {
             return Regex.IsMatch(text, @"\br/.+?\b", RegexOptions.IgnoreCase);
@@ -24,6 +26,9 @@ namespace Rodkulman.Telegram
             foreach (Match match in Regex.Matches(message.Text, @"(?<!com/)\br/(?<Subreddit>.+?)\b", RegexOptions.IgnoreCase))
             {
                 var j = await GetRedditTop3(match.Groups["Subreddit"].Value);
+
+                if (j == null) { continue; }
+
                 var subreddit = match.Groups["Subreddit"].Value;
 
                 if (j["data"].Value<int>("dist") == 0) { continue; }
@@ -71,34 +76,40 @@ namespace Rodkulman.Telegram
 
         private static async Task<JObject> GetRedditTop3(string redditName)
         {
-            var request = WebRequest.CreateHttp($"https://www.reddit.com/r/{redditName}/top/.json?t=all&limit=3");
+            var request = new RestRequest($"/r/{redditName}/top/.json");
+            request.AddParameter("t", "all");
+            request.AddParameter("limit", 3);
 
-            using (var response = await request.GetResponseAsync())
-            using (var stream = response.GetResponseStream())
-            using (var textReader = new StreamReader(stream))
-            using (var jsonReader = new JsonTextReader(textReader))
+            var response = await client.ExecuteTaskAsync(request);
+
+            if (response.IsSuccessful)
             {
-                return await JObject.LoadAsync(jsonReader);
+                return JObject.Parse(response.Content);
+            }
+            else
+            {
+                return null;
             }
         }
 
         private static async Task<JObject> GetSubReddit(string redditName, string sort, string t)
         {
-            var url = $"https://www.reddit.com/r/{redditName}/{sort}.json?sort={sort}";
-
+            var request = new RestRequest($"/r/{redditName}/{sort}/.json");
+            request.AddParameter("sort", sort);
             if (sort == "controversial" || sort == "top")
             {
-                url += $"&t={t}";
+                request.AddParameter("t", t);
             }
 
-            var request = WebRequest.CreateHttp(url);
+            var response = await client.ExecuteTaskAsync(request);
 
-            using (var response = await request.GetResponseAsync())
-            using (var stream = response.GetResponseStream())
-            using (var textReader = new StreamReader(stream))
-            using (var jsonReader = new JsonTextReader(textReader))
+            if (response.IsSuccessful)
             {
-                return await JObject.LoadAsync(jsonReader);
+                return JObject.Parse(response.Content);
+            }
+            else
+            {
+                return null;
             }
         }
     }
