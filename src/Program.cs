@@ -34,6 +34,7 @@ namespace Rodkulman.Telegram
             tm = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));
 
             Bot.OnMessage += BotOnMessageReceived;
+            Bot.OnCallbackQuery += BotOnCallbackQuery;
             Bot.OnReceiveError += BotOnReceiveError;
 
             me = Bot.GetMeAsync().Result;
@@ -44,6 +45,21 @@ namespace Rodkulman.Telegram
             Console.ReadLine();
 
             Bot.StopReceiving();
+        }
+
+        private static async void BotOnCallbackQuery(object sender, CallbackQueryEventArgs e)
+        {
+            try
+            {
+                await Bot.AnswerCallbackQueryAsync(e.CallbackQuery.Id);
+                await WhatIsCommand.ReplyMessage(e.CallbackQuery.Message, e.CallbackQuery);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.GetType().FullName);
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.StackTrace);
+            }
         }
 
         private static async void TimerTick(object state)

@@ -25,50 +25,85 @@ namespace Rodkulman.Telegram
             public int UserId => userId;
 
         }
-        private static List<FromChatUser> expected = new List<FromChatUser>();
+        private static List<long> expected = new List<long>();
 
         public static bool IsExpected(Message message)
         {
-            return expected.Any(x => x.ChatId == message.Chat.Id && x.UserId == message.From.Id);
+            return expected.Any(x => x == message.Chat.Id);
         }
-        public static async Task ReplyMessage(Message message)
+        public static async Task ReplyMessage(Message message, CallbackQuery query = null)
         {
             await Program.Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
-            var tokens = message.Text.Split(' ');
+            string[] tokens;
+
+            if (query == null)
+            {
+                tokens = message.Text.Split(' ');
+            }
+            else
+            {
+                tokens = query.Data.Split(' ');
+            }
 
             if (tokens.Length == 1 && tokens[0].StartsWith("/"))
             {
-                ReplyKeyboardMarkup keyboard = new[]
+                IReplyMarkup keyboard;
+
+                if (message.Chat.Type == ChatType.Group)
                 {
-                    new[] { "love", "life"},
-                    new[] { "man", "ti" },
-                };
+                    keyboard = new InlineKeyboardMarkup(new[]
+                    {
+                        new []
+                        {
+                            InlineKeyboardButton.WithCallbackData("love"),
+                            InlineKeyboardButton.WithCallbackData("life"),
+                        },
+                        new []
+                        {
+                            InlineKeyboardButton.WithCallbackData("man"),
+                            InlineKeyboardButton.WithCallbackData("ti"),
+                        }
+                    });
 
-                expected.Add(new FromChatUser(message.Chat.Id, message.From.Id));
+                    await Program.Bot.SendTextMessageAsync(message.Chat.Id, "Escolhe ai", replyToMessageId: message.MessageId, replyMarkup: keyboard);
+                }
+                else
+                {
+                    keyboard = (ReplyKeyboardMarkup)new[]
+                    {
+                        new[] { "love", "life"},
+                        new[] { "man", "ti" },
+                    };
 
-                await Program.Bot.SendTextMessageAsync(message.Chat.Id, "Escolhe ai", replyToMessageId: message.MessageId, replyMarkup: keyboard);
+                    expected.Add(message.Chat.Id);
+                    await Program.Bot.SendTextMessageAsync(message.Chat.Id, "Pergunta ai o que tu quer", replyToMessageId: message.MessageId, replyMarkup: keyboard);
+                }
+            }
+            else if (query != null)
+            {
+                await ReplyToken(message, tokens[0], shouldReplyTo: false, prefixToken: true);
             }
             else if (tokens.Length == 1 && !tokens[0].StartsWith("/"))
             {
-                var toRemove = expected.FirstOrDefault(x => x.ChatId == message.Chat.Id && x.UserId == message.From.Id);
-                if (toRemove != null)
+                var toRemove = expected.FirstOrDefault(x => x == message.Chat.Id);
+                if (toRemove != default(long))
                 {
                     expected.Remove(toRemove);
-                    await ReplyToken(message, tokens[0]);
+                    await ReplyToken(message, tokens[0], shouldReplyTo: query == null);
                 }
             }
             else if (tokens.Length == 2)
             {
-                await ReplyToken(message, tokens[1]);
+                await ReplyToken(message, tokens[1], shouldReplyTo: query == null);
             }
             else
             {
-                await SendTermDefinition(message, String.Join("+", tokens.Skip(1)));
+                await SendTermDefinition(message, String.Join("+", tokens.Skip(1)), shouldReplyTo: query == null);
             }
         }
 
-        private static async Task SendTermDefinition(Message message, string token)
+        private static async Task SendTermDefinition(Message message, string token, bool shouldReplyTo)
         {
             string reply;
 
@@ -82,39 +117,44 @@ namespace Rodkulman.Telegram
                     break;
             }
 
-            await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove(), parseMode: ParseMode.Html, disableWebPagePreview: true);
+            await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: shouldReplyTo ? message.MessageId : 0, replyMarkup: new ReplyKeyboardRemove(), parseMode: ParseMode.Html, disableWebPagePreview: true);
         }
 
-        private static async Task ReplyToken(Message message, string token)
+        private static async Task ReplyToken(Message message, string token, bool shouldReplyTo, bool prefixToken = false)
         {
+            if (prefixToken)
+            {
+                await SendReply(message, $"Our parça, methinks {token} is", shouldReplyTo);
+            }
+
             switch (token.ToLower())
             {
                 case "love":
-                    await SendReply(message, "baby don't hurt me");
+                    await SendReply(message, "baby don't hurt me", shouldReplyTo);
                     await Task.Delay(TimeSpan.FromSeconds(1));
                     await Program.Bot.SendTextMessageAsync(message.Chat.Id, "don't hurt me");
                     await Task.Delay(TimeSpan.FromSeconds(1));
                     await Program.Bot.SendTextMessageAsync(message.Chat.Id, "no more");
                     break;
                 case "life":
-                    await SendReply(message, "42");
+                    await SendReply(message, "42", shouldReplyTo);
                     break;
                 case "man":
-                    await SendReply(message, "a miserable pile of secrets");
+                    await SendReply(message, "a miserable pile of secrets", shouldReplyTo);
                     break;
                 case "it":
                 case "ti":
-                    await SendReply(message, System.IO.File.ReadAllLines(@"text-replies\whatis-it.txt").GetRandomElement());
+                    await SendReply(message, System.IO.File.ReadAllLines(@"text-replies\whatis-it.txt").GetRandomElement(), shouldReplyTo);
                     break;
                 default:
-                    await SendTermDefinition(message, token);
+                    await SendTermDefinition(message, token, shouldReplyTo);
                     break;
             }
         }
 
-        private static async Task SendReply(Message message, string reply)
+        private static async Task SendReply(Message message, string reply, bool shouldReplyTo)
         {
-            await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: message.MessageId, replyMarkup: new ReplyKeyboardRemove());
+            await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: shouldReplyTo ? message.MessageId : 0, replyMarkup: new ReplyKeyboardRemove());
         }
     }
 }
