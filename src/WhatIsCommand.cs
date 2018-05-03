@@ -82,7 +82,7 @@ namespace Rodkulman.Telegram
             }
             else if (query != null)
             {
-                await ReplyToken(message, tokens[0], shouldReplyTo: false, prefixToken: true);
+                await ReplyToken(message, tokens[0], shouldReplyTo: false, prefix: $"{query.From.FirstName} asked what is {string.Join(' ', tokens)}");
             }
             else if (tokens.Length == 1 && !tokens[0].StartsWith("/"))
             {
@@ -120,11 +120,11 @@ namespace Rodkulman.Telegram
             await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: shouldReplyTo ? message.MessageId : 0, replyMarkup: new ReplyKeyboardRemove(), parseMode: ParseMode.Html, disableWebPagePreview: true);
         }
 
-        private static async Task ReplyToken(Message message, string token, bool shouldReplyTo, bool prefixToken = false)
+        private static async Task ReplyToken(Message message, string token, bool shouldReplyTo, string prefix = null)
         {
-            if (prefixToken)
+            if (!string.IsNullOrWhiteSpace(prefix))
             {
-                await SendReply(message, $"Our parça, methinks {token} is", shouldReplyTo);
+                await SendReply(message, prefix, shouldReplyTo);
             }
 
             switch (token.ToLower())
