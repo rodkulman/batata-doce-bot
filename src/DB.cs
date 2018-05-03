@@ -32,7 +32,7 @@ namespace Rodkulman.Telegram
         {
             lock (lockKey)
             {
-                using (var stream = File.OpenWrite(@"db\config.json"))
+                using (var stream = File.Open(@"db\config.json", FileMode.Create, FileAccess.ReadWrite))
                 using (var textWriter = new StreamWriter(stream))
                 using (var jsonWriter = new JsonTextWriter(textWriter))
                 {
