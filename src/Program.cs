@@ -242,7 +242,7 @@ namespace Rodkulman.Telegram
 
         private static async Task SendFridayLink(long chatId)
         {
-            var link = (new[] { "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/watch?v=kfVsfOSbJY0" }).GetRandomElement();
+            var link = IO.File.ReadAllLines(@"text-lists\friday-links.txt").GetRandomElement();
 
             await Bot.SendTextMessageAsync(chatId, $"<a href=\"{link}\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
         }
