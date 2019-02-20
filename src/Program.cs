@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using IO = System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
@@ -28,7 +27,7 @@ namespace Rodkulman.Telegram
 
         public static void Main(string[] args)
         {
-            chatIds.AddRange(JArray.Parse(IO.File.ReadAllText(@"db\chats.json")).Select(x => x.Value<long>()));
+            chatIds.AddRange((GoogleCloudStorage.GetArrayFromFile("db/chats.json")).Result.Select(x => x.Value<long>()));
 
             Bot = new TelegramBotClient(Keys.Get("Telegram"));
             tm = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));
@@ -82,7 +81,7 @@ namespace Rodkulman.Telegram
                     DB.WednesdayMyDudes = true;
                     foreach (var id in chatIds)
                     {
-                        await SendRandomImageMessage(id, @"images\wednesday", bamboozle: false);
+                        await SendRandomImageMessage(id, "images/wednesday", bamboozle: false);
                     }
                 }
             }
@@ -117,10 +116,10 @@ namespace Rodkulman.Telegram
         private static async Task SendThurdayMessage(long chatId)
         {
             await Bot.SendChatActionAsync(chatId, ChatAction.Typing);
-            await Bot.SendTextMessageAsync(chatId, IO.File.ReadAllText(@"text-replies\thursday.txt"), replyMarkup: new ReplyKeyboardRemove());
+            await Bot.SendTextMessageAsync(chatId, await GoogleCloudStorage.ReadAllText("text-replies/thursday.txt"), replyMarkup: new ReplyKeyboardRemove());
 
             await Bot.SendChatActionAsync(chatId, ChatAction.UploadAudio);
-            using (var stream = IO.File.OpenRead(@"audio\thursday.aac"))
+            using (var stream = await GoogleCloudStorage.GetFile("audio/thursday.aac"))
             {
                 await Bot.SendAudioAsync(chatId, stream, replyMarkup: new ReplyKeyboardRemove());
             }
@@ -183,7 +182,7 @@ namespace Rodkulman.Telegram
                     await SendTopMessage(message);
                     break;
                 case "/wednesday":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\wednesday", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/wednesday", message.MessageId);
                     break;
                 case "/thursday":
                     await SendThurdayMessage(message.Chat.Id);
@@ -192,17 +191,17 @@ namespace Rodkulman.Telegram
                     await SendFridayLink(message.Chat.Id);
                     break;
                 case "/communism":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/communism", message.MessageId);
                     break;
                 case "/jesus":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/jesus", message.MessageId);
                     break;
                 case "/ghandi":
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
                     await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyMarkup: new ReplyKeyboardRemove());
                     break;
                 case "/gandhi":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\gandhi", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/gandhi", message.MessageId);
                     break;
                 case "/bomdia":
                     await GoogleImages.SendRandomImage(message.Chat.Id, "bom+dia");
@@ -219,7 +218,7 @@ namespace Rodkulman.Telegram
                     await DiceRolls.SendRollDiceMessage(message);
                     break;
                 case "/dankmeme":
-                    await Reddit.GetRandomImage(message, IO.File.ReadAllLines(@"text-lists\meme-subreddit.txt").GetRandomElement());
+                    await Reddit.GetRandomImage(message, (await GoogleCloudStorage.ReadAllLines("text-lists/meme-subreddit.txt")).GetRandomElement());
                     break;
                 default:
                     if (message.Chat.Type == ChatType.Private || wasMentioned)
@@ -242,7 +241,7 @@ namespace Rodkulman.Telegram
 
         private static async Task SendFridayLink(long chatId)
         {
-            var link = IO.File.ReadAllLines(@"text-lists\friday-links.txt").GetRandomElement();
+            var link = (await GoogleCloudStorage.ReadAllLines("text-lists/friday-links.txt")).GetRandomElement();
 
             await Bot.SendTextMessageAsync(chatId, $"<a href=\"{link}\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
         }
@@ -251,11 +250,16 @@ namespace Rodkulman.Telegram
         {
             if (!chatIds.Contains(id)) { chatIds.Add(id); }
 
-            using (var stream = IO.File.OpenWrite(@"db\chats.json"))
-            using (var textWriter = new IO.StreamWriter(stream))
-            using (var jsonWriter = new JsonTextWriter(textWriter))
+            using (var mem = new System.IO.MemoryStream())
             {
-                await JArray.FromObject(chatIds).WriteToAsync(jsonWriter);
+                using (var textWriter = new System.IO.StreamWriter(mem, Encoding.UTF8, 1024, true))
+                using (var jsonWriter = new JsonTextWriter(textWriter))
+                {
+                    await JArray.FromObject(chatIds).WriteToAsync(jsonWriter);
+                }
+
+                mem.Seek(0, System.IO.SeekOrigin.Begin);
+                await GoogleCloudStorage.SetFile("db/chats.json", "text/plain", mem);
             }
         }
 
@@ -263,11 +267,16 @@ namespace Rodkulman.Telegram
         {
             if (chatIds.Contains(id)) { chatIds.Remove(id); }
 
-            using (var stream = IO.File.OpenWrite(@"db\chats.json"))
-            using (var textWriter = new IO.StreamWriter(stream))
-            using (var jsonWriter = new JsonTextWriter(textWriter))
+            using (var mem = new System.IO.MemoryStream())
             {
-                await JArray.FromObject(chatIds).WriteToAsync(jsonWriter);
+                using (var textWriter = new System.IO.StreamWriter(mem))
+                using (var jsonWriter = new JsonTextWriter(textWriter))
+                {
+                    await JArray.FromObject(chatIds).WriteToAsync(jsonWriter);
+                }
+
+                mem.Seek(0, System.IO.SeekOrigin.Begin);
+                await GoogleCloudStorage.SetFile("db/chats.json", "text/plain", mem);
             }
         }
 
@@ -279,10 +288,10 @@ namespace Rodkulman.Telegram
 
         private static async Task ReplyRandomMessage(Message message)
         {
-            var communismKeywords = await IO.File.ReadAllLinesAsync(@"keywords\communism.txt");
-            var topKeywords = await IO.File.ReadAllLinesAsync(@"keywords\top.txt");
-            var jesusKeywords = await IO.File.ReadAllLinesAsync(@"keywords\jesus.txt");
-            var bamboozleKeywords = await IO.File.ReadAllLinesAsync(@"keywords\bamboozle.txt");
+            var communismKeywords = await GoogleCloudStorage.ReadAllLines("keywords/communism.txt");
+            var topKeywords = await GoogleCloudStorage.ReadAllLines("keywords/top.txt");
+            var jesusKeywords = await GoogleCloudStorage.ReadAllLines("keywords/jesus.txt");
+            var bamboozleKeywords = await GoogleCloudStorage.ReadAllLines("keywords/bamboozle.txt");
 
             foreach (Match match in Regex.Matches(message.Text, @"\b.+?\b"))
             {
@@ -298,19 +307,22 @@ namespace Rodkulman.Telegram
 
                 if (bamboozleKeywords.Contains(match.Value, StringComparer.OrdinalIgnoreCase))
                 {
-                    await Bot.SendPhotoAsync(message.Chat.Id, IO.File.OpenRead(@"images\bamboozle\walter.jpg"), "I am the one who bamboozles!", replyToMessageId: message.MessageId);
+                    using (var mem = await GoogleCloudStorage.GetFile("images/bamboozle/walter.jpg"))
+                    {
+                        await Bot.SendPhotoAsync(message.Chat.Id, mem, "I am the one who bamboozles!", replyToMessageId: message.MessageId);                        
+                    }                    
                 }
             }
 
             foreach (Match match in Regex.Matches(message.Text, @"\b(.+?)\b\.(jpg|jpeg|bmp|png|gif)", RegexOptions.IgnoreCase))
             {
-                var directImage = IO.Directory.EnumerateFiles("images", "*", IO.SearchOption.AllDirectories).FirstOrDefault(x => IO.Path.GetFileName(x).Equals(match.Value.Trim(), StringComparison.OrdinalIgnoreCase));
+                var directImage = GoogleCloudStorage.GetFiles("images", recurse: true).FirstOrDefault(x => System.IO.Path.GetFileName(x).Equals(match.Value.Trim(), StringComparison.OrdinalIgnoreCase));
 
                 if (!string.IsNullOrWhiteSpace(directImage))
                 {
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.UploadPhoto);
 
-                    using (var stream = IO.File.OpenRead(directImage))
+                    using (var stream = await GoogleCloudStorage.GetFile(directImage))
                     {
                         if (match.Groups[2].Value.Equals("gif", StringComparison.OrdinalIgnoreCase))
                         {
@@ -326,12 +338,12 @@ namespace Rodkulman.Telegram
                 {
                     if (jesusKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
                     {
-                        await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
+                        await SendRandomImageMessage(message.Chat.Id, "images/jesus", message.MessageId);
                     }
 
                     if (communismKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
                     {
-                        await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
+                        await SendRandomImageMessage(message.Chat.Id, "images/communism", message.MessageId);
                     }
                 }
             }
@@ -343,7 +355,7 @@ namespace Rodkulman.Telegram
         {
             if (bamboozle && rnd.Next(0, 10) == 5)
             {
-                using (var stream = System.IO.File.OpenRead(@"images\rick.png"))
+                using (var stream = await GoogleCloudStorage.GetFile("images/rick.png"))
                 {
                     await Bot.SendPhotoAsync(chatId, stream, replyToMessageId: messageId, caption: "bamboozled");
                 }
@@ -353,9 +365,9 @@ namespace Rodkulman.Telegram
 
             await Bot.SendChatActionAsync(chatId, ChatAction.UploadPhoto);
 
-            var files = IO.Directory.GetFiles(path);
+            var files = GoogleCloudStorage.GetFiles(path);
 
-            using (var stream = System.IO.File.OpenRead(files.GetRandomElement()))
+            using (var stream = await GoogleCloudStorage.GetFile(files.GetRandomElement()))
             {
                 await Bot.SendStickerAsync(chatId, stream, replyToMessageId: messageId);
             }

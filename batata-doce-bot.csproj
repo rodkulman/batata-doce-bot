@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,6 +10,11 @@
     <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
     <PackageReference Include="RestSharp" Version="106.2.1" />
     <PackageReference Include="Telegram.Bot" Version="14.2.0-rc-452" />
+    <PackageReference Include="Google.Cloud.Storage.V1" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="db/keys.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

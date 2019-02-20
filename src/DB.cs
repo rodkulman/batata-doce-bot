@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -7,36 +9,24 @@ namespace Rodkulman.Telegram
 {
     public static class DB
     {
-        private static readonly JObject config = LoadOrCreateConfig();
+        private static readonly JObject config = GoogleCloudStorage.GetObjectFromFile("db/config.json").Result;
 
         private static readonly object lockKey = new object();
-
-        private static JObject LoadOrCreateConfig()
-        {
-            if (!File.Exists(@"db\config.json"))
-            {
-                return new JObject(
-                    new JProperty(nameof(GoodMorningMessageLastSent), DateTime.Now.DayOfWeek),
-                    new JProperty(nameof(ThursdayMessageSent), false),
-                    new JProperty(nameof(WednesdayMyDudes), false),
-                    new JProperty(nameof(GottaGetDownOnFriday), false)
-                );
-            }
-            else
-            {
-                return JObject.Parse(File.ReadAllText(@"db\config.json"));
-            }
-        }
 
         private static void SaveConfig()
         {
             lock (lockKey)
             {
-                using (var stream = File.Open(@"db\config.json", FileMode.Create, FileAccess.ReadWrite))
-                using (var textWriter = new StreamWriter(stream))
-                using (var jsonWriter = new JsonTextWriter(textWriter))
+                using (var mem = new MemoryStream())
                 {
-                    config.WriteTo(jsonWriter);
+                    using (var textWriter = new StreamWriter(mem, Encoding.UTF8, 1024, true))
+                    using (var jsonWriter = new JsonTextWriter(textWriter))
+                    {
+                        config.WriteTo(jsonWriter);
+                    }
+
+                    mem.Seek(0, SeekOrigin.Begin);
+                    GoogleCloudStorage.SetFile("db/config.json", "text/plain", mem).Wait();
                 }
             }
         }

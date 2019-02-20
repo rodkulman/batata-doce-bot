@@ -144,7 +144,7 @@ namespace Rodkulman.Telegram
                     break;
                 case "it":
                 case "ti":
-                    await SendReply(message, System.IO.File.ReadAllLines(@"text-replies\whatis-it.txt").GetRandomElement(), shouldReplyTo);
+                    await SendReply(message, (await GoogleCloudStorage.ReadAllLines("text-replies/whatis-it.txt")).GetRandomElement(), shouldReplyTo);
                     break;
                 default:
                     await SendTermDefinition(message, token, shouldReplyTo);
