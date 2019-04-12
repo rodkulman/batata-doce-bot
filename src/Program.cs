@@ -75,6 +75,17 @@ namespace Rodkulman.Telegram
                     }
                 }
             }
+            else if (DateTime.Now.DayOfWeek == DayOfWeek.Tuesday)
+            {
+                if (DateTime.Now.Hour >= 7 && !DB.Twosday)
+                {
+                    DB.Twosday = true;
+                    foreach (var id in chatIds)
+                    {
+                        await SendRandomImageMessage(id, @"images\tuesday", bamboozle: false);
+                    }
+                }
+            }
             else if (DateTime.Now.DayOfWeek == DayOfWeek.Wednesday)
             {
                 if (DateTime.Now.Hour >= 7 && !DB.WednesdayMyDudes)
@@ -184,6 +195,9 @@ namespace Rodkulman.Telegram
                     break;
                 case "/wednesday":
                     await SendRandomImageMessage(message.Chat.Id, @"images\wednesday", message.MessageId);
+                    break;
+                case "/twosday":
+                    await SendRandomImageMessage(message.Chat.Id, @"images\tuesday", message.MessageId);
                     break;
                 case "/thursday":
                     await SendThurdayMessage(message.Chat.Id);

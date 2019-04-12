@@ -19,7 +19,8 @@ namespace Rodkulman.Telegram
                     new JProperty(nameof(GoodMorningMessageLastSent), DateTime.Now.DayOfWeek),
                     new JProperty(nameof(ThursdayMessageSent), false),
                     new JProperty(nameof(WednesdayMyDudes), false),
-                    new JProperty(nameof(GottaGetDownOnFriday), false)
+                    new JProperty(nameof(GottaGetDownOnFriday), false),
+                    new JProperty(nameof(Twosday), false)
                 );
             }
             else
@@ -47,6 +48,16 @@ namespace Rodkulman.Telegram
             set
             {
                 config[nameof(GoodMorningMessageLastSent)] = (int)value;
+                SaveConfig();
+            }
+        }
+
+        public static bool Twosday
+        {
+            get {return config.Value<bool>(nameof(Twosday));}
+            set
+            {
+                config[nameof(Twosday)] = value;
                 SaveConfig();
             }
         }
