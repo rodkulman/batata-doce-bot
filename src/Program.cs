@@ -28,13 +28,12 @@ namespace Rodkulman.Telegram
 
         public static void Main(string[] args)
         {
-            chatIds.AddRange(JArray.Parse(IO.File.ReadAllText(@"db\chats.json")).Select(x => x.Value<long>()));
+            chatIds.AddRange(JArray.Parse(IO.File.ReadAllText("db/chats.json")).Select(x => x.Value<long>()));
 
             Bot = new TelegramBotClient(Keys.Get("Telegram"));
             tm = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));
 
             Bot.OnMessage += BotOnMessageReceived;
-            Bot.OnCallbackQuery += BotOnCallbackQuery;
             Bot.OnReceiveError += BotOnReceiveError;
 
             me = Bot.GetMeAsync().Result;
@@ -42,24 +41,20 @@ namespace Rodkulman.Telegram
             Bot.StartReceiving();
 
             Console.WriteLine($"Start listening for @{me.Username}");
+            
+            foreach (var id in chatIds)
+            {
+                Bot.SendTextMessageAsync(id, "TO VIVO PORRA", replyMarkup: new ReplyKeyboardRemove());
+            }
+
             Console.ReadLine();
 
-            Bot.StopReceiving();
-        }
+            foreach (var id in chatIds)
+            {
+                Bot.SendTextMessageAsync(id, "TO MORRENDO PORRA", replyMarkup: new ReplyKeyboardRemove());
+            }
 
-        private static async void BotOnCallbackQuery(object sender, CallbackQueryEventArgs e)
-        {
-            try
-            {
-                await Bot.AnswerCallbackQueryAsync(e.CallbackQuery.Id);
-                await WhatIsCommand.ReplyMessage(e.CallbackQuery.Message, e.CallbackQuery);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.GetType().FullName);
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.StackTrace);
-            }
+            Bot.StopReceiving();
         }
 
         private static async void TimerTick(object state)
@@ -77,12 +72,12 @@ namespace Rodkulman.Telegram
             }
             else if (DateTime.Now.DayOfWeek == DayOfWeek.Tuesday)
             {
-                if (DateTime.Now.Hour >= 7 && !DB.Twosday)
+                if (DateTime.Now.Hour >= 7 && !DB.ZeroTwosday)
                 {
-                    DB.Twosday = true;
+                    DB.ZeroTwosday = true;
                     foreach (var id in chatIds)
                     {
-                        await SendRandomImageMessage(id, @"images\tuesday", bamboozle: false);
+                        await SendRandomImageMessage(id, "images/tuesday", bamboozle: false);
                     }
                 }
             }
@@ -93,18 +88,7 @@ namespace Rodkulman.Telegram
                     DB.WednesdayMyDudes = true;
                     foreach (var id in chatIds)
                     {
-                        await SendRandomImageMessage(id, @"images\wednesday", bamboozle: false);
-                    }
-                }
-            }
-            else if (DateTime.Now.DayOfWeek == DayOfWeek.Friday)
-            {
-                if (DateTime.Now.Hour >= 7 && !DB.GottaGetDownOnFriday)
-                {
-                    DB.GottaGetDownOnFriday = true;
-                    foreach (var id in chatIds)
-                    {
-                        await SendFridayLink(id);
+                        await SendRandomImageMessage(id, "images/wednesday", bamboozle: false);
                     }
                 }
             }
@@ -112,7 +96,7 @@ namespace Rodkulman.Telegram
             {
                 DB.ThursdayMessageSent = false;
                 DB.WednesdayMyDudes = false;
-                DB.GottaGetDownOnFriday = false;
+                DB.ZeroTwosday = false;
 
                 if (DateTime.Now.DayOfWeek != DB.GoodMorningMessageLastSent && DateTime.Now.Hour >= 7)
                 {
@@ -128,10 +112,10 @@ namespace Rodkulman.Telegram
         private static async Task SendThurdayMessage(long chatId)
         {
             await Bot.SendChatActionAsync(chatId, ChatAction.Typing);
-            await Bot.SendTextMessageAsync(chatId, IO.File.ReadAllText(@"text-replies\thursday.txt"), replyMarkup: new ReplyKeyboardRemove());
+            await Bot.SendTextMessageAsync(chatId, IO.File.ReadAllText("text-replies/thursday.txt"), replyMarkup: new ReplyKeyboardRemove());
 
             await Bot.SendChatActionAsync(chatId, ChatAction.UploadAudio);
-            using (var stream = IO.File.OpenRead(@"audio\thursday.aac"))
+            using (var stream = IO.File.OpenRead("audio/thursday.aac"))
             {
                 await Bot.SendAudioAsync(chatId, stream, replyMarkup: new ReplyKeyboardRemove());
             }
@@ -145,6 +129,21 @@ namespace Rodkulman.Telegram
 
             if (message.Type != MessageType.Text) { return; }
 
+            try
+            {
+                await ProcessMessage(message);
+            }
+            catch (Exception ex)
+            {
+                foreach (var id in chatIds)
+                {
+                    await Bot.SendTextMessageAsync(id, ex.Message);
+                }
+            }            
+        }
+
+        private static async Task ProcessMessage(Message message)
+        {
             if (Reddit.ContainsSubredditMention(message.Text))
             {
                 await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
@@ -153,16 +152,7 @@ namespace Rodkulman.Telegram
 
             if (!message.Text.StartsWith("/"))
             {
-                if (WhatIsCommand.IsExpected(message))
-                {
-                    await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
-                    await WhatIsCommand.ReplyMessage(message);
-                }
-                else
-                {
-                    await ReplyRandomMessage(message);
-                }
-
+                await ReplyRandomMessage(message);
                 return;
             }
 
@@ -194,10 +184,10 @@ namespace Rodkulman.Telegram
                     await SendTopMessage(message);
                     break;
                 case "/wednesday":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\wednesday", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/wednesday", message.MessageId);
                     break;
                 case "/twosday":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\tuesday", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/tuesday", message.MessageId);
                     break;
                 case "/thursday":
                     await SendThurdayMessage(message.Chat.Id);
@@ -206,34 +196,37 @@ namespace Rodkulman.Telegram
                     await SendFridayLink(message.Chat.Id);
                     break;
                 case "/communism":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/communism", message.MessageId);
                     break;
                 case "/jesus":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/jesus", message.MessageId);
                     break;
                 case "/ghandi":
                     await Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
                     await Bot.SendTextMessageAsync(message.Chat.Id, "Se escreve Gandhi", replyMarkup: new ReplyKeyboardRemove());
                     break;
                 case "/gandhi":
-                    await SendRandomImageMessage(message.Chat.Id, @"images\gandhi", message.MessageId);
+                    await SendRandomImageMessage(message.Chat.Id, "images/gandhi", message.MessageId);
                     break;
                 case "/bomdia":
                     await GoogleImages.SendRandomImage(message.Chat.Id, "bom+dia");
                     break;
                 case "/start":
                     await SaveChat(message.Chat.Id);
-                    await Bot.SendTextMessageAsync(message.Chat.Id, $"Que começe a zueira", replyMarkup: new ReplyKeyboardRemove());
+                    await Bot.SendTextMessageAsync(message.Chat.Id, "Que começe a zueira", replyMarkup: new ReplyKeyboardRemove());
                     break;
                 case "/stop":
                     await RemoveChat(message.Chat.Id);
-                    await Bot.SendTextMessageAsync(message.Chat.Id, $"toma no cu vocês", replyMarkup: new ReplyKeyboardRemove());
+                    await Bot.SendTextMessageAsync(message.Chat.Id, "toma no cu vocês", replyMarkup: new ReplyKeyboardRemove());
                     break;
                 case "/roll":
                     await DiceRolls.SendRollDiceMessage(message);
                     break;
                 case "/dankmeme":
-                    await Reddit.GetRandomImage(message, IO.File.ReadAllLines(@"text-lists\meme-subreddit.txt").GetRandomElement());
+                    await Reddit.GetRandomImage(message, IO.File.ReadAllLines("text-lists/meme-subreddit.txt").GetRandomElement());
+                    break;
+                case "/dotaresponse":
+                    await Dota2.SendDotaResponse(message, message.Text.Substring(14));
                     break;
                 default:
                     if (message.Chat.Type == ChatType.Private || wasMentioned)
@@ -256,7 +249,7 @@ namespace Rodkulman.Telegram
 
         private static async Task SendFridayLink(long chatId)
         {
-            var link = IO.File.ReadAllLines(@"text-lists\friday-links.txt").GetRandomElement();
+            var link = IO.File.ReadAllLines("text-lists/friday-links.txt").GetRandomElement();
 
             await Bot.SendTextMessageAsync(chatId, $"<a href=\"{link}\">sextou</a>", ParseMode.Html, disableWebPagePreview: true);
         }
@@ -265,7 +258,7 @@ namespace Rodkulman.Telegram
         {
             if (!chatIds.Contains(id)) { chatIds.Add(id); }
 
-            using (var stream = IO.File.OpenWrite(@"db\chats.json"))
+            using (var stream = IO.File.OpenWrite("db/chats.json"))
             using (var textWriter = new IO.StreamWriter(stream))
             using (var jsonWriter = new JsonTextWriter(textWriter))
             {
@@ -277,7 +270,7 @@ namespace Rodkulman.Telegram
         {
             if (chatIds.Contains(id)) { chatIds.Remove(id); }
 
-            using (var stream = IO.File.OpenWrite(@"db\chats.json"))
+            using (var stream = IO.File.OpenWrite("db/chats.json"))
             using (var textWriter = new IO.StreamWriter(stream))
             using (var jsonWriter = new JsonTextWriter(textWriter))
             {
@@ -293,10 +286,16 @@ namespace Rodkulman.Telegram
 
         private static async Task ReplyRandomMessage(Message message)
         {
-            var communismKeywords = await IO.File.ReadAllLinesAsync(@"keywords\communism.txt");
-            var topKeywords = await IO.File.ReadAllLinesAsync(@"keywords\top.txt");
-            var jesusKeywords = await IO.File.ReadAllLinesAsync(@"keywords\jesus.txt");
-            var bamboozleKeywords = await IO.File.ReadAllLinesAsync(@"keywords\bamboozle.txt");
+            if (await Dota2.IsDota2Reponse(message))
+            {
+                await Dota2.SendDotaResponse(message, message.Text);
+                return;
+            }
+
+            var communismKeywords = await IO.File.ReadAllLinesAsync("keywords/communism.txt");
+            var topKeywords = await IO.File.ReadAllLinesAsync("keywords/top.txt");
+            var jesusKeywords = await IO.File.ReadAllLinesAsync("keywords/jesus.txt");
+            var bamboozleKeywords = await IO.File.ReadAllLinesAsync("keywords/bamboozle.txt");
 
             foreach (Match match in Regex.Matches(message.Text, @"\b.+?\b"))
             {
@@ -340,12 +339,12 @@ namespace Rodkulman.Telegram
                 {
                     if (jesusKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
                     {
-                        await SendRandomImageMessage(message.Chat.Id, @"images\jesus", message.MessageId);
+                        await SendRandomImageMessage(message.Chat.Id, "images/jesus", message.MessageId);
                     }
 
                     if (communismKeywords.Contains(match.Groups[1].Value, StringComparer.OrdinalIgnoreCase))
                     {
-                        await SendRandomImageMessage(message.Chat.Id, @"images\communism", message.MessageId);
+                        await SendRandomImageMessage(message.Chat.Id, "images/communism", message.MessageId);
                     }
                 }
             }
@@ -357,7 +356,7 @@ namespace Rodkulman.Telegram
         {
             if (bamboozle && rnd.Next(0, 10) == 5)
             {
-                using (var stream = System.IO.File.OpenRead(@"images\rick.png"))
+                using (var stream = System.IO.File.OpenRead("images/rick.png"))
                 {
                     await Bot.SendPhotoAsync(chatId, stream, replyToMessageId: messageId, caption: "bamboozled");
                 }

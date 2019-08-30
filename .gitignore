@@ -36,3 +36,4 @@ msbuild.wrn
 keys.json
 chats.json
 config.json
+db/dota2-responses.json
