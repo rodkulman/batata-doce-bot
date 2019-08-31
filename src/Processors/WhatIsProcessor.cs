@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
@@ -9,9 +7,9 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Rodkulman.Telegram
 {
-    public static class WhatIsCommand
+    public class WhatIsProcessor
     {
-        public static async Task ReplyMessage(Message message)
+        public async Task ReplyMessage(Message message)
         {
             await Program.Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
 
@@ -27,24 +25,24 @@ namespace Rodkulman.Telegram
             }
         }
 
-        private static async Task SendTermDefinition(Message message, string token)
+        private async Task SendTermDefinition(Message message, string token)
         {
             string reply;
 
-            switch (await DetectLanguage.Detect(token))
+            switch (await DetectLanguage.DetectFromText(token))
             {
                 case "pt":
                     reply = DicionarioInformal.GetDefinition(token);
                     break;
                 default:
-                    reply = await UrbanDictionary.SendTermDefinition(token);
+                    reply = await UrbanDictionary.GetTermDefinition(token);
                     break;
             }
 
             await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, parseMode: ParseMode.Html, disableWebPagePreview: true);
         }
 
-        private static async Task SendReply(Message message, string reply, bool shouldReplyTo)
+        private async Task SendReply(Message message, string reply, bool shouldReplyTo)
         {
             await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: shouldReplyTo ? message.MessageId : 0, replyMarkup: new ReplyKeyboardRemove());
         }

@@ -1,14 +1,6 @@
-using System;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using Telegram.Bot.Types;
-using Newtonsoft.Json;
-using System.IO;
-using System.Net;
 using System.Linq;
 using Newtonsoft.Json.Linq;
-using Telegram.Bot.Types.ReplyMarkups;
-using Telegram.Bot.Types.Enums;
 using RestSharp;
 
 namespace Rodkulman.Telegram
@@ -16,7 +8,13 @@ namespace Rodkulman.Telegram
     public static class UrbanDictionary
     {
         private static readonly RestClient client = new RestClient("http://api.urbandictionary.com");
-        public static async Task<string> SendTermDefinition(string term)
+
+        /// <summary>
+        /// Searches for a random definition of term
+        /// </summary>
+        /// <param name="term">Term to seach for</param>
+        /// <returns>Returns a random definition of term</returns>
+        public static async Task<string> GetTermDefinition(string term)
         {
             JObject result;
 
@@ -31,7 +29,7 @@ namespace Rodkulman.Telegram
             }
             else
             {
-                return "Nem eu sei 😂";
+                return Resources.GetString("UrbanDictionaryOff");
             }
 
             if (result["list"].Any())
@@ -42,7 +40,7 @@ namespace Rodkulman.Telegram
             }
             else
             {
-                return "Nem eu sei 😂";
+                return $"{term} not found, sorry, not sorry";
             }
         }
     }

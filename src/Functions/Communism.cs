@@ -4,16 +4,19 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Rodkulman.Telegram
 {
     public static class Communism
     {
-        public async static Task CorrectCapitalistInfidels(Message message)
+        public async static Task CheckAndSendCommunismMessage(Message message)
         {
-            if (Regex.Matches(message.Text, @"(meus?|minhas?) \b([a-z]+)\b|\b([a-z]+)\b é (meus?|minhas?)", RegexOptions.IgnoreCase) is MatchCollection matches && matches.Any(x => x.Success))
+            var matches = Regex.Matches(message.Text, @"(meus?|minhas?) \b([a-z]+)\b|\b([a-z]+)\b é (meus?|minhas?)", RegexOptions.IgnoreCase);
+
+            if (matches.Any(x => x.Success))
             {
+                await Program.Bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
+
                 var reply = "Acho que tu quis dizer";
 
                 if (matches.Count > 1)
@@ -32,7 +35,7 @@ namespace Rodkulman.Telegram
                     reply += $" *{GetCommunistResponse(matches[0])}*, né camarada?";
                 }
 
-                await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: message.MessageId, parseMode: ParseMode.Markdown, replyMarkup: new ReplyKeyboardRemove());
+                await Program.Bot.SendTextMessageAsync(message.Chat.Id, reply, replyToMessageId: message.MessageId, parseMode: ParseMode.Markdown);
             }
 
             string GetCommunistResponse(Match match)

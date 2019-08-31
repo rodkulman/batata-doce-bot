@@ -33,7 +33,4 @@ msbuild.wrn
 .vs/
 
 # rodkulman
-keys.json
-chats.json
-config.json
-db/dota2-responses.json
+db/

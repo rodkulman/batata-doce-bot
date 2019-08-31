@@ -7,6 +7,10 @@ namespace Rodkulman.Telegram
     public static class Extensions
     {
         private static readonly Random rnd = new Random();
+
+        /// <summary>
+        /// Gets a random element from an array
+        /// </summary>
         public static T GetRandomElement<T>(this T[] array)
         {
             if (array == null || !array.Any())
@@ -17,6 +21,9 @@ namespace Rodkulman.Telegram
             return array[rnd.Next(0, array.Length)];
         }
 
+        /// <summary>
+        /// Gets a random element from a enumerable
+        /// </summary>
         public static T GetRandomElement<T>(this IEnumerable<T> enumerable)
         {
             if (enumerable == null || !enumerable.Any())
