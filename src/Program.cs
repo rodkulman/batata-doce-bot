@@ -14,15 +14,13 @@ namespace Rodkulman.Telegram
 {
     public class Program
     {
-        private static TelegramBotClient bot;        
-        private static User me;        
+        private static TelegramBotClient bot;
+        private static User me;
 
         private static Dota2Processor dota2;
         private static WhatIsProcessor whatIs;
         private static RedditProcessor reddit;
         private static DailyMessageProcessor daily;
-
-        private static bool running = true;
 
         public static TelegramBotClient Bot { get { return bot; } }
 
@@ -36,7 +34,7 @@ namespace Rodkulman.Telegram
             reddit = new RedditProcessor();
             daily = new DailyMessageProcessor();
 
-            bot = new TelegramBotClient(DB.GetKey("Telegram"));            
+            bot = new TelegramBotClient(DB.GetKey("Telegram"));
 
             bot.OnMessage += BotOnMessageReceived;
             bot.OnReceiveError += BotOnReceiveError;
@@ -45,18 +43,10 @@ namespace Rodkulman.Telegram
 
             Console.WriteLine($"Start listening for @{me.Username}");
 
-            while (running)
-            {
-                try
-                {
-                    bot.StartReceiving();
-                    Console.ReadLine();
-                }
-                catch 
-                {
-                    bot.StopReceiving();                    
-                }                
-            }            
+            bot.StartReceiving();
+            Console.ReadLine();
+            
+            bot.StopReceiving();
         }
 
         private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
@@ -74,13 +64,13 @@ namespace Rodkulman.Telegram
             catch (Exception ex)
             {
                 await bot.SendTextMessageAsync(message.Chat.Id, ex.Message);
-            }            
+            }
         }
 
         private static async Task ProcessMessage(Message message)
         {
             if (reddit.ContainsSubredditMention(message.Text))
-            {                
+            {
                 await reddit.SendSneakPeek(message);
             }
 
@@ -187,7 +177,7 @@ namespace Rodkulman.Telegram
                 await dota2.SendDotaResponse(message, message.Text);
                 return;
             }
-            
+
             // then, we check if the message is a image request
             var match = Regex.Match(message.Text, @"^\b(?:.+?)\b\.(?:jpg|jpeg|bmp|png|gif)$", RegexOptions.IgnoreCase);
             if (match.Success)
