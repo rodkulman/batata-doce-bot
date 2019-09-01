@@ -39,13 +39,14 @@ namespace Rodkulman.Telegram
             bot.OnMessage += BotOnMessageReceived;
             bot.OnReceiveError += BotOnReceiveError;
 
-            me = bot.GetMeAsync().Result;
+            me = bot.GetMeAsync().Result;            
+
+            bot.StartReceiving();
 
             Console.WriteLine($"Start listening for @{me.Username}");
 
-            bot.StartReceiving();
             Console.ReadLine();
-            
+
             bot.StopReceiving();
         }
 
