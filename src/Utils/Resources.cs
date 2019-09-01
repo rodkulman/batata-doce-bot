@@ -12,7 +12,7 @@ namespace Rodkulman.Telegram
 
         public static void Load()
         {
-            using (var stream = File.OpenWrite("resources/strings.json"))
+            using (var stream = File.OpenRead("resources/strings.json"))
             using (var textReader = new StreamReader(stream))
             using (var jsonReader = new JsonTextReader(textReader))
             {

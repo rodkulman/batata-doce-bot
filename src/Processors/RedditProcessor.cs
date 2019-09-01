@@ -92,7 +92,7 @@ namespace Rodkulman.Telegram
         public async Task SendRandomImage(Message message)
         {
             // gets the Front Page of a random subreddit
-            var subredditName = System.IO.File.ReadAllLines("text-lists/meme-subreddit.txt").GetRandomElement();
+            var subredditName = Resources.GetStrings("MemeSubreddits").GetRandomElement();
             var frontPage = await GetSubReddit(subredditName, "hot");
 
             if (frontPage["data"].Value<int>("dist") == 0) { return; }

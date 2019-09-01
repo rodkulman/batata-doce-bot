@@ -22,7 +22,9 @@ namespace Rodkulman.Telegram
         private static RedditProcessor reddit;
         private static DailyMessageProcessor daily;
 
-        public static TelegramBotClient Bot { get; } = bot;
+        private static bool running = true;
+
+        public static TelegramBotClient Bot { get { return bot; } }
 
         public static void Main(string[] args)
         {
@@ -41,13 +43,20 @@ namespace Rodkulman.Telegram
 
             me = bot.GetMeAsync().Result;
 
-            bot.StartReceiving();
-
             Console.WriteLine($"Start listening for @{me.Username}");
 
-            Console.ReadLine();
-
-            bot.StopReceiving();
+            while (running)
+            {
+                try
+                {
+                    bot.StartReceiving();
+                    Console.ReadLine();
+                }
+                catch 
+                {
+                    bot.StopReceiving();                    
+                }                
+            }            
         }
 
         private static async void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)

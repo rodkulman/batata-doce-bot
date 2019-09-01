@@ -11,14 +11,14 @@ namespace Rodkulman.Telegram
         private static List<long> chatIds;
         private static Dictionary<string, string> keys;
 
-        public static IEnumerable<long> Chats { get; } = chatIds;
+        public static IEnumerable<long> Chats { get { return chatIds; } }
 
         public static void Load()
         {
             chatIds = new List<long>();
             keys = new Dictionary<string, string>();
             
-            using (var stream = File.OpenWrite("db/keys.json"))
+            using (var stream = File.OpenRead("db/keys.json"))
             using (var textReader = new StreamReader(stream))
             using (var jsonReader = new JsonTextReader(textReader))
             {
@@ -26,11 +26,11 @@ namespace Rodkulman.Telegram
 
                 foreach (JProperty prop in raw.Properties())
                 {
-                    keys[prop.Name] = prop.Value<string>();
+                    keys[prop.Name] = prop.Value.Value<string>();
                 }
             }
 
-            using (var stream = File.OpenWrite("db/chats.json"))
+            using (var stream = File.OpenRead("db/chats.json"))
             using (var textReader = new StreamReader(stream))
             using (var jsonReader = new JsonTextReader(textReader))
             {
