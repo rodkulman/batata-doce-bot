@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace Rodkulman.Telegram
@@ -73,15 +75,20 @@ namespace Rodkulman.Telegram
             }
         }
 
+        public bool IsThursdayReference(string message)
+        {
+            return Regex.IsMatch(message, "hoje ([eé]|eh) quinta", RegexOptions.IgnoreCase);
+        }
+
         public async Task SendThurdayMessage(long chatId)
         {
             await Program.Bot.SendChatActionAsync(chatId, ChatAction.Typing);
             await Program.Bot.SendTextMessageAsync(chatId, Resources.GetString("Thursday"));
 
             await Program.Bot.SendChatActionAsync(chatId, ChatAction.UploadAudio);
-            using (var stream = Resources.GetAudio("thursday.acc"))
+            using (var stream = Resources.GetAudio("thursday.aac"))
             {
-                await Program.Bot.SendAudioAsync(chatId, stream);
+                await Program.Bot.SendAudioAsync(chatId, stream, title: "Dale Dale", performer: "Mito");
             }
         }
     }

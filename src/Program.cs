@@ -179,6 +179,12 @@ namespace Rodkulman.Telegram
                 return;
             }
 
+            if (daily.IsThursdayReference(message.Text))
+            {
+                await daily.SendThurdayMessage(message.Chat.Id);
+                return;
+            }
+
             // then, we check if the message is a image request
             var match = Regex.Match(message.Text, @"^\b(?:.+?)\b\.(?:jpg|jpeg|bmp|png|gif)$", RegexOptions.IgnoreCase);
             if (match.Success)
