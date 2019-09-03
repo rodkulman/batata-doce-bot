@@ -105,9 +105,6 @@ namespace Rodkulman.Telegram
                 case "/whatis":
                     await whatIs.ReplyMessage(message);
                     break;
-                case "/bomdia":
-                    await GoogleImages.SendRandomImage(message.Chat.Id, "bom+dia");
-                    break;
                 case "/start":
                     DB.AddChat(message.Chat.Id);
                     await bot.SendTextMessageAsync(message.Chat.Id, "Que começe a zueira");

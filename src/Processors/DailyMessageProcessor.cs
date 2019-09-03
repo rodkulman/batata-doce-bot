@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -70,17 +71,24 @@ namespace Rodkulman.Telegram
                         }
                         else
                         {
-                            foreach (var id in DB.Chats)
+                            Stream image;
+
+                            try
                             {
-                                try
-                                {
-                                    await GoogleImages.SendRandomImage(id, "bom+dia");                                
-                                }
-                                catch
-                                {
-                                    return;
-                                }                            
-                            }                                                        
+                                image = await GoogleImages.GetRandomImage("bom+dia");
+                            }
+                            catch
+                            {                                
+                                return;
+                            }
+
+                            using (image)
+                            {
+                                foreach (var id in DB.Chats)
+                                {                                    
+                                    await Program.Bot.SendPhotoAsync(id, image);
+                                }                                                        
+                            }
                         }                        
 
                         goodMorningMessageLastSent = DateTime.Now.DayOfWeek;
