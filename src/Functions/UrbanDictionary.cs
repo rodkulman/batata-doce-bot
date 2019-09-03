@@ -2,12 +2,15 @@ using System.Threading.Tasks;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System;
+using System.Text.RegularExpressions;
 
 namespace Rodkulman.Telegram
 {
     public static class UrbanDictionary
     {
         private static readonly RestClient client = new RestClient("http://api.urbandictionary.com");
+        private static readonly Uri urbanDictionaryLink = new Uri("https://www.urbandictionary.com");
 
         /// <summary>
         /// Searches for a random definition of term
@@ -34,13 +37,31 @@ namespace Rodkulman.Telegram
 
             if (result["list"].Any())
             {
-                var definition = result["list"].GetRandomElement();
+                var i = new Random().Next(result["list"].Count());
 
-                return $"<a href=\"{definition.Value<string>("permalink")}\">{definition.Value<string>("definition")}</a>";
+                var definition = result["list"][i];
+                var permalink = definition.Value<string>("permalink");
+                var definitionText = definition.Value<string>("definition");
+
+                return $"<a href=\"{permalink}\">#{i + 1}</a>: " + Regex.Replace(definitionText, @"\[.+?\]", LinkAggregator);
             }
             else
             {
                 return $"{term} not found, sorry, not sorry";
+            }
+        }
+
+        private static string LinkAggregator(Match match)
+        {
+            var text = match.Value.Substring(1, match.Value.Length - 2);
+            
+            if (Uri.TryCreate(urbanDictionaryLink, $"define.php?term={text}", out Uri link)) 
+            {
+                return $"<a href=\"{link}\">{text}</a>";
+            }
+            else
+            {
+                return text;
             }
         }
     }
