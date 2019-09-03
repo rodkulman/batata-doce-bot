@@ -11,6 +11,7 @@ namespace Rodkulman.Telegram
     public class DailyMessageProcessor
     {
         private readonly Timer timer;
+        private readonly WeatherManager weather;
 
         private DayOfWeek goodMorningMessageLastSent = DayOfWeek.Sunday;        
         private bool wednesdayMessageSent = false;
@@ -18,7 +19,8 @@ namespace Rodkulman.Telegram
     
         public DailyMessageProcessor()
         {
-            timer = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));
+            weather = new WeatherManager();
+            timer = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));            
         }
         
         private async void TimerTick(object state)
@@ -52,12 +54,36 @@ namespace Rodkulman.Telegram
                     thursdayMessageSent = false;
 
                     if (DateTime.Now.DayOfWeek != goodMorningMessageLastSent)
-                    {
-                        goodMorningMessageLastSent = DateTime.Now.DayOfWeek;
-                        foreach (var id in DB.Chats)
-                        {
-                            await GoogleImages.SendRandomImage(id, "bom+dia");
+                    {           
+                        var sendHotAudio = await weather.GetMaxTempForCity(WeatherManager.PortoAlegreId) >= 25 && await weather.GetMaxTempForCity(WeatherManager.TresDeMaioId) >= 25;
+
+                        if (sendHotAudio)
+                        {                            
+                            using (var stream = Resources.GetAudio("gonna-be-hot.mp3"))
+                            {
+                                foreach (var id in DB.Chats)
+                                {                        
+                                    await Program.Bot.SendChatActionAsync(id, ChatAction.UploadAudio);
+                                    await Program.Bot.SendAudioAsync(id, stream, title: "Pretty much everywhere", performer: "Arthur");
+                                }
+                            }
                         }
+                        else
+                        {
+                            foreach (var id in DB.Chats)
+                            {
+                                try
+                                {
+                                    await GoogleImages.SendRandomImage(id, "bom+dia");                                
+                                }
+                                catch
+                                {
+                                    return;
+                                }                            
+                            }                                                        
+                        }                        
+
+                        goodMorningMessageLastSent = DateTime.Now.DayOfWeek;
                     }
                     break;
             }
