@@ -101,7 +101,7 @@ namespace Rodkulman.Telegram
         {
             await Program.Bot.SendChatActionAsync(chatId, ChatAction.UploadPhoto);
 
-            var filePath = Resources.GetImages().Where(x => x.StartsWith("wednesday")).GetRandomElement();            
+            var filePath = Resources.GetImages().Where(x => Path.GetFileName(x).StartsWith("wednesday")).GetRandomElement();            
 
             using (var stream = Resources.GetFile(filePath))
             {
