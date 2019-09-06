@@ -19,7 +19,11 @@ namespace Rodkulman.Telegram
 
             using (var response = await request.GetResponseAsync())
             {
-                return response.GetResponseStream();
+                var retVal = new MemoryStream();
+
+                await response.GetResponseStream().CopyToAsync(retVal);
+
+                return retVal;
             }
         }
 

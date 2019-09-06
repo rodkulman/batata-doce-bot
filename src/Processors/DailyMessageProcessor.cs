@@ -21,7 +21,7 @@ namespace Rodkulman.Telegram
         public DailyMessageProcessor()
         {
             weather = new WeatherManager();
-            timer = new Timer(TimerTick, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));            
+            timer = new Timer(TimerTick, null, TimeSpan.FromSeconds(10), TimeSpan.FromMinutes(30));            
         }
         
         private async void TimerTick(object state)
@@ -86,6 +86,7 @@ namespace Rodkulman.Telegram
                             {
                                 foreach (var id in DB.Chats)
                                 {                                    
+                                    image.Position = 0;
                                     await Program.Bot.SendPhotoAsync(id, image);
                                 }                                                        
                             }
