@@ -13,19 +13,31 @@ namespace Rodkulman.Telegram
     {
         private readonly Timer timer;
         private readonly WeatherManager weather;
-
-        private DayOfWeek goodMorningMessageLastSent = DayOfWeek.Sunday;        
+        private readonly Random rnd;
+        private DayOfWeek goodMorningMessageLastSent = DayOfWeek.Sunday;
+        private DateTime stayHidratedMessageLastSent = DateTime.Today.AddDays(-1);
         private bool wednesdayMessageSent = false;
         private bool thursdayMessageSent = false;
-    
+
         public DailyMessageProcessor()
         {
             weather = new WeatherManager();
-            timer = new Timer(TimerTick, null, TimeSpan.FromSeconds(10), TimeSpan.FromMinutes(30));            
+            rnd = new Random();
+            timer = new Timer(TimerTick, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
         }
-        
+
         private async void TimerTick(object state)
         {
+            if (stayHidratedMessageLastSent != DateTime.Today && DateTime.Now.Hour > 7 && rnd.Next(0, 10) == 0)
+            {
+                foreach (var id in DB.Chats)
+                {
+                    await Program.Bot.SendTextMessageAsync(id, Resources.GetString("StayHidratedMessage"));
+                }
+
+                stayHidratedMessageLastSent = DateTime.Today;
+            }
+
             if (DateTime.Now.Hour < 7) { return; }
 
             switch (DateTime.Now.DayOfWeek)
@@ -55,15 +67,15 @@ namespace Rodkulman.Telegram
                     thursdayMessageSent = false;
 
                     if (DateTime.Now.DayOfWeek != goodMorningMessageLastSent)
-                    {           
+                    {
                         var sendHotAudio = await weather.GetMaxTempForCity(WeatherManager.PortoAlegreId) >= 25 && await weather.GetMaxTempForCity(WeatherManager.TresDeMaioId) >= 25;
 
                         if (sendHotAudio)
-                        {                            
+                        {
                             using (var stream = Resources.GetAudio("gonna-be-hot.mp3"))
                             {
                                 foreach (var id in DB.Chats)
-                                {                        
+                                {
                                     await Program.Bot.SendChatActionAsync(id, ChatAction.UploadAudio);
                                     await Program.Bot.SendAudioAsync(id, stream, title: "Pretty much everywhere", performer: "Arthur");
                                 }
@@ -78,19 +90,19 @@ namespace Rodkulman.Telegram
                                 image = await GoogleImages.GetRandomImage("bom+dia");
                             }
                             catch
-                            {                                
+                            {
                                 return;
                             }
 
                             using (image)
                             {
                                 foreach (var id in DB.Chats)
-                                {                                    
+                                {
                                     image.Position = 0;
                                     await Program.Bot.SendPhotoAsync(id, image);
-                                }                                                        
+                                }
                             }
-                        }                        
+                        }
 
                         goodMorningMessageLastSent = DateTime.Now.DayOfWeek;
                     }
@@ -102,7 +114,7 @@ namespace Rodkulman.Telegram
         {
             await Program.Bot.SendChatActionAsync(chatId, ChatAction.UploadPhoto);
 
-            var filePath = Resources.GetImages().Where(x => Path.GetFileName(x).StartsWith("wednesday")).GetRandomElement();            
+            var filePath = Resources.GetImages().Where(x => Path.GetFileName(x).StartsWith("wednesday")).GetRandomElement();
 
             using (var stream = Resources.GetFile(filePath))
             {
