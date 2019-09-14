@@ -23,7 +23,7 @@ namespace Rodkulman.Telegram
         {
             weather = new WeatherManager();
             rnd = new Random();
-            timer = new Timer(TimerTick, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+            timer = new Timer(TimerTick, null, TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(30));
         }
 
         private async void TimerTick(object state)
