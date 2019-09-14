@@ -161,12 +161,23 @@ namespace Rodkulman.Telegram
             await bot.SendTextMessageAsync(message.Chat.Id, Resources.GetString("TopLink"), replyToMessageId: message.MessageId);
         }
 
+        private static async Task SendYoAngelo(Message message)
+        {
+            await bot.SendChatActionAsync(message.Chat.Id, ChatAction.Typing);
+            await bot.SendTextMessageAsync(message.Chat.Id, Resources.GetString("YoAngelo"), replyToMessageId: message.MessageId);            
+        }
+
         private static async Task ReplyRandomMessage(Message message)
         {
             // first, we see if it a top message
-            if (message.Text == "top" || message.Text == "🔝")
+            if (message.Text.Equals("top", StringComparison.OrdinalIgnoreCase) || message.Text == "🔝")
             {
                 await SendTopMessage(message);
+            }
+
+            if (message.Text == "🗿" || Regex.IsMatch(message.Text, @"^Yo,? Angelo!?$", RegexOptions.IgnoreCase))
+            {
+                await SendYoAngelo(message);
             }
 
             // then, lets see if it is a dota2 response
@@ -211,7 +222,7 @@ namespace Rodkulman.Telegram
             }
 
             await Communism.CheckAndSendCommunismMessage(message);
-        }
+        }        
 
         private static void BotOnReceiveError(object sender, ReceiveErrorEventArgs receiveErrorEventArgs)
         {
