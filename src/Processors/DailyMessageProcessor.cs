@@ -76,6 +76,7 @@ namespace Rodkulman.Telegram
                             {
                                 foreach (var id in DB.Chats)
                                 {
+                                    stream.Position = 0;
                                     await Program.Bot.SendChatActionAsync(id, ChatAction.UploadAudio);
                                     await Program.Bot.SendAudioAsync(id, stream, title: "Pretty much everywhere", performer: "Arthur");
                                 }
@@ -88,20 +89,21 @@ namespace Rodkulman.Telegram
                             try
                             {
                                 image = await GoogleImages.GetRandomImage("bom+dia");
+
+                                using (image)
+                                {
+                                    foreach (var id in DB.Chats)
+                                    {
+                                        image.Position = 0;
+                                        await Program.Bot.SendPhotoAsync(id, image);
+                                    }
+                                }
                             }
                             catch
                             {
                                 return;
                             }
-
-                            using (image)
-                            {
-                                foreach (var id in DB.Chats)
-                                {
-                                    image.Position = 0;
-                                    await Program.Bot.SendPhotoAsync(id, image);
-                                }
-                            }
+                            
                         }
 
                         goodMorningMessageLastSent = DateTime.Now.DayOfWeek;
