@@ -20,7 +20,7 @@ namespace Rodkulman.Telegram
         private static Dota2Processor dota2;
         private static WhatIsProcessor whatIs;
         private static RedditProcessor reddit;
-        private static DailyMessageProcessor daily;
+        private static DailyMessageProcessor daily = null;
 
         public static TelegramBotClient Bot { get { return bot; } }
 
@@ -32,7 +32,7 @@ namespace Rodkulman.Telegram
             dota2 = new Dota2Processor();
             whatIs = new WhatIsProcessor();
             reddit = new RedditProcessor();
-            daily = new DailyMessageProcessor();
+            // daily = new DailyMessageProcessor();
 
             bot = new TelegramBotClient(DB.GetKey("Telegram"));
 
@@ -187,7 +187,7 @@ namespace Rodkulman.Telegram
                 return;
             }
 
-            if (daily.IsThursdayReference(message.Text))
+            if (daily?.IsThursdayReference(message.Text) ?? false)
             {
                 await daily.SendThurdayMessage(message.Chat.Id);
                 return;
